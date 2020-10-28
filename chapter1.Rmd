@@ -1,13 +1,13 @@
 
 # About the project
 
-*Write a short description about the course and add a link to your GitHub repository here. This is an R Markdown (.Rmd) file so you should use R Markdown syntax.*
+Hello world! This is my first entry to the [Introduction to Open Data Science 2020](https://mooc.helsinki.fi/course/view.php?id=385) course project. This course teaches data analysis using R and writing stuff down with R Markdown. Interesting and useful stuff. Previously I've worked with Python and GitHub-flavored Markdown syntax.
 
-```{r}
-# This is a so-called "R chunk" where you can write R code.
+I hope to learn more of the "statistics" side in data science. Topics such as
 
-date()
+- How to ensure my analysis is statistically sound?
+- How to process the data "properly" (outlier detection etc)?
+- How to select proper methods and descriptive "output numbers"?
+- How to discern independent and co-dependent parameters from the data.
 
-```
-The text continues here.
-
+By the way, here is the link to my [GitHub repository](https://github.com/pkars/IODS-project) for this project. Currently it's rather empty as the "real" work starts next week...
