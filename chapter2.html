@@ -440,9 +440,160 @@ summary {
 <p>With that out of the way, let’s start the analysis part of the current exercise set!</p>
 <div id="the-analysis-data" class="section level2">
 <h2>The analysis data</h2>
-<p>The analysis data was produced in “Data wrangling” part. You can see the creation script <a href="https://github.com/pkars/IODS-project/blob/master/data/create_learning2014.R">here</a> (most recent version) or the original from <a href="https://github.com/pkars/IODS-project/blob/bb6de848b26bd4fbd3e909cce19831c8d86ccbee/data/create_learning2014.R">commit <code>bb6de84</code></a>).</p>
+<p>The analysis data was produced in “Data wrangling” part of the exercises. The original data is the “JYTOPKYS2” study data by Kimmo Vehkalahti. The original data is available from <a href="https://www.mv.helsinki.fi/home/kvehkala/JYTmooc/JYTOPKYS3-data.txt">here</a> and the data is explained <a href="https://www.mv.helsinki.fi/home/kvehkala/JYTmooc/JYTOPKYS2-meta.txt">here</a>.</p>
+<p>The analysis data is a mix of original variables (<code>gender</code>, <code>age</code>, <code>attitude</code>, and <code>points</code>) and derived variables (<code>deep</code>, <code>stra</code>, and <code>surf</code>). The original and derived variables are explained as following, based on Vehkalahti’s metadata. Note that the derived variables were omitted from the original data linked above - so that we’d have to calculate them ourselves - but they were included in the metadata.</p>
+<table>
+<colgroup>
+<col width="31%" />
+<col width="28%" />
+<col width="18%" />
+<col width="21%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Variable</th>
+<th>Meaning</th>
+<th>Type</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>gender</code></td>
+<td>Gender of the student</td>
+<td>Categorical</td>
+<td>“M” or “F”</td>
+</tr>
+<tr class="even">
+<td><code>age</code></td>
+<td>Age (in years)</td>
+<td>Number</td>
+<td>derived from the date of birth</td>
+</tr>
+<tr class="odd">
+<td><code>attitude</code></td>
+<td>Global attitude toward statistics</td>
+<td>Number</td>
+<td>Sum of 10 answers</td>
+</tr>
+<tr class="even">
+<td><code>points</code></td>
+<td>Total points from coursework</td>
+<td>Number</td>
+<td>Student’s best exam score + extra points from answering the study questionnaire</td>
+</tr>
+<tr class="odd">
+<td><code>deep</code></td>
+<td>Average score of answers related to Deep approach</td>
+<td>Number</td>
+<td>Avg. of 12 answers</td>
+</tr>
+<tr class="even">
+<td><code>stra</code></td>
+<td>Average score of answers related to Strategic approach</td>
+<td>Number</td>
+<td>Avg. of 12 answers</td>
+</tr>
+<tr class="odd">
+<td><code>surf</code></td>
+<td>Average score of answers to Surface approach</td>
+<td>Number</td>
+<td>Avg. of 8 answers</td>
+</tr>
+</tbody>
+</table>
+<p>You can see the creation script <a href="https://github.com/pkars/IODS-project/blob/master/data/create_learning2014.R">here</a> (most recent version) or the original from <a href="https://github.com/pkars/IODS-project/blob/bb6de848b26bd4fbd3e909cce19831c8d86ccbee/data/create_learning2014.R">commit <code>bb6de84</code></a>). The script stores the data to <code>learning2014.csv</code>, so let’s start by reading that file and printing out the dataset structure, first few rows<a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a>, and the summary.</p>
 <pre class="r"><code>dset &lt;- read.csv(&quot;data/learning2014.csv&quot;)</code></pre>
-<p>Here we go again…</p>
+<pre class="r"><code>str(dset)</code></pre>
+<pre><code>&#39;data.frame&#39;:   166 obs. of  7 variables:
+ $ gender  : chr  &quot;F&quot; &quot;M&quot; &quot;F&quot; &quot;M&quot; ...
+ $ age     : int  53 55 49 53 49 38 50 37 37 42 ...
+ $ attitude: int  37 31 25 35 37 38 35 29 38 21 ...
+ $ deep    : num  3.58 2.92 3.5 3.5 3.67 ...
+ $ stra    : num  3.38 2.75 3.62 3.12 3.62 ...
+ $ surf    : num  2.58 3.17 2.25 2.25 2.83 ...
+ $ points  : int  25 12 24 10 22 21 21 31 24 26 ...</code></pre>
+<pre class="r"><code>knitr::kable(head(dset, 5))</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">gender</th>
+<th align="right">age</th>
+<th align="right">attitude</th>
+<th align="right">deep</th>
+<th align="right">stra</th>
+<th align="right">surf</th>
+<th align="right">points</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">F</td>
+<td align="right">53</td>
+<td align="right">37</td>
+<td align="right">3.583333</td>
+<td align="right">3.375</td>
+<td align="right">2.583333</td>
+<td align="right">25</td>
+</tr>
+<tr class="even">
+<td align="left">M</td>
+<td align="right">55</td>
+<td align="right">31</td>
+<td align="right">2.916667</td>
+<td align="right">2.750</td>
+<td align="right">3.166667</td>
+<td align="right">12</td>
+</tr>
+<tr class="odd">
+<td align="left">F</td>
+<td align="right">49</td>
+<td align="right">25</td>
+<td align="right">3.500000</td>
+<td align="right">3.625</td>
+<td align="right">2.250000</td>
+<td align="right">24</td>
+</tr>
+<tr class="even">
+<td align="left">M</td>
+<td align="right">53</td>
+<td align="right">35</td>
+<td align="right">3.500000</td>
+<td align="right">3.125</td>
+<td align="right">2.250000</td>
+<td align="right">10</td>
+</tr>
+<tr class="odd">
+<td align="left">M</td>
+<td align="right">49</td>
+<td align="right">37</td>
+<td align="right">3.666667</td>
+<td align="right">3.625</td>
+<td align="right">2.833333</td>
+<td align="right">22</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code>summary(dset)</code></pre>
+<pre><code>    gender               age           attitude          deep      
+ Length:166         Min.   :17.00   Min.   :14.00   Min.   :1.583  
+ Class :character   1st Qu.:21.00   1st Qu.:26.00   1st Qu.:3.333  
+ Mode  :character   Median :22.00   Median :32.00   Median :3.667  
+                    Mean   :25.51   Mean   :31.43   Mean   :3.680  
+                    3rd Qu.:27.00   3rd Qu.:37.00   3rd Qu.:4.083  
+                    Max.   :55.00   Max.   :50.00   Max.   :4.917  
+      stra            surf           points     
+ Min.   :1.250   Min.   :1.583   Min.   : 7.00  
+ 1st Qu.:2.625   1st Qu.:2.417   1st Qu.:19.00  
+ Median :3.188   Median :2.833   Median :23.00  
+ Mean   :3.121   Mean   :2.787   Mean   :22.72  
+ 3rd Qu.:3.625   3rd Qu.:3.167   3rd Qu.:27.75  
+ Max.   :5.000   Max.   :4.333   Max.   :33.00  </code></pre>
+<pre class="r"><code>count(dset, gender)</code></pre>
+<pre><code>  gender   n
+1      F 110
+2      M  56</code></pre>
+<p>This data contains 166 data points (rows). The original data has 187 rows, however the students with 0 points were omitted during the data wrangling.</p>
 </div>
 <div id="fitting-the-linear-model" class="section level2">
 <h2>Fitting the linear model</h2>
@@ -450,6 +601,12 @@ summary {
 <div id="interpreting-the-model-and-the-model-diagnostics" class="section level2">
 <h2>Interpreting the model and the model diagnostics</h2>
 </div>
+</div>
+<div class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p>I’m using the <code>knitr::kable</code> function here to output prettier tables. It doesn’t affect the data values in any way, it is a purely aesthetic helper function.<a href="#fnref1" class="footnote-back">↩︎</a></p></li>
+</ol>
 </div>
 
 
