@@ -81,4 +81,11 @@ str(dset)  # 166 obs. of 7 variables
 
 # Task 4 ------------------------------------------------------------------
 
+# Save the data
+write.csv(dset, "data/learning2014.csv", row.names=FALSE)
 
+# Read the data
+reread_table <- read.csv("data/learning2014.csv")
+str(reread_table)
+head(reread_table, 5)
+# Looks correct :)
