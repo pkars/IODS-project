@@ -12,9 +12,13 @@
 # Import external libraries
 library(dplyr)
 
-# Task 1: Create 'data' folder and a script (i.e. this file) [0pt]
+# Task 1 ------------------------------------------------------------------
+# Create 'data' folder and a script (i.e. this file) [0pt]
 
-# Task 2: Read and explore data, with commentary [1pt]
+
+# Task 2 ------------------------------------------------------------------
+# Read and explore data, with commentary [1pt]
+
 full_data <- read.table("http://www.helsinki.fi/~kvehkala/JYTmooc/JYTOPKYS3-data.txt", 
                         sep="\t", header=TRUE)
 # Checking the first rows of data...
@@ -27,7 +31,10 @@ head(full_data, 10)
 # "gender" column contains strings, others are integers.
 str(full_data)
 
-# Task 3: Create analysis dataset [1pt]
+
+# Task 3 ------------------------------------------------------------------
+# Create analysis dataset [1pt]
+
 # Create combination variables as defined in metadata file
 # Deep approach = "Seeking Meaning" + "Relating Ideas" + "Use of Evidence"
 #   Seeking Meaning = D03 + D11 + D19 + D27
@@ -36,3 +43,8 @@ str(full_data)
 # Note: All columns are of format "D\d\d", so we can use regular expression here
 deep <- select(full_data, matches(c("D\\d\\d"), perl = TRUE))
 head(deep, 4)
+
+
+# Task 4 ------------------------------------------------------------------
+
+
