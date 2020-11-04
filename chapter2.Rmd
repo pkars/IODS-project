@@ -1,3 +1,10 @@
+```{r include=FALSE}
+# Remove the '##' from each line of R output blocks
+knitr::opts_chunk$set(comment = '') 
+# Include dplyr
+library(dplyr)
+```
+
 # Week 2: Regression and model validation
 This section is the report for the second week of IODS. To start with, here are the instructions given for writing this report:
 
