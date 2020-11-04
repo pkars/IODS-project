@@ -37,7 +37,6 @@ str(full_data)
 
 # Filter out rows where Points == 0
 full_data <- filter(full_data, Points > 0)
-str(full_data)
 
 # Create combination variables as defined in metadata file
 # Deep approach = "Seeking Meaning" + "Relating Ideas" + "Use of Evidence"
@@ -46,24 +45,20 @@ str(full_data)
 #   Use of Evidence = D06 + D15 + D23 + D31
 # Note: All columns are of format "D\d\d", so we can use regular expression here
 deep <- select(full_data, matches(c("D\\d\\d"), perl = TRUE))
-head(deep, 4)
 # Sum over "deep" variables and normalize by number of variables
 deep_adj <- rowSums(deep) / length(colnames(deep))
-str(deep_adj)
 
 # Surface approach:
 #   Lack of Purpose = SU02 + SU10 + SU18 + SU26
 #   Unrelated Memorising = SU05 + SU13 + SU21 + SU29
 #   Syllabus-boundness SU08 + SU16 + SU24 + SU32
 surf <- select(full_data, matches(c("SU\\d\\d"), perl = TRUE))
-head(surf, 4)
 surf_adj <- rowSums(surf) / length(colnames(surf))
 
 # Strategic approach
 #   Organized Studying = ST01 + ST09 + ST17 + ST25
 #   Time Management = ST04 + ST12 + ST20 + ST28
 stra <- select(full_data, matches(c("ST\\d\\d"), perl = TRUE))
-head(stra, 4)
 stra_adj <- rowSums(stra) / length(colnames(stra))
 
 # Create the dataset (forcing the column order with hard-coding)
