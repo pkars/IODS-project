@@ -9,8 +9,14 @@ This section is the report for the second week of IODS. To start with, here are 
 
 With that out of the way, let's start the analysis part of the current exercise set!
 
+## The analysis data
+The analysis data was produced in "Data wrangling" part. You can see the creation script [here](https://github.com/pkars/IODS-project/blob/master/data/create_learning2014.R) (most recent version) or the original from [commit `bb6de84`](https://github.com/pkars/IODS-project/blob/bb6de848b26bd4fbd3e909cce19831c8d86ccbee/data/create_learning2014.R)). The script stores the data to `learning2014.csv`, so let's start by reading that file.
+
 ```{r}
-date()
+dset <- read.csv("data/learning2014.csv")
 ```
 
-Here we go again...
+
+## Fitting the linear model
+
+## Interpreting the model and the model diagnostics
