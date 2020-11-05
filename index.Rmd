@@ -15,17 +15,22 @@ output:
 
 # Introduction to Open Data Science - Course Project
 
-```{r child = "chapter1.Rmd"}
-# This will include Chapter 1 (that is updated in its own file) in the document.
-```
-  
-***
-  
-```{r child = "chapter2.Rmd"}
-# This will include Chapter 2 (that is updated in its own file) in the document.
+<!-- This will include Chapter 1 (that is updated in its own file) in the document.-->
+```{r 'ch1', child = "chapter1.Rmd"}
 ```
 
+<a href="#top" class="return-link">Back to top.</a>
+  
 ***
 
-(more chapters to be added similarly as we proceed with the course!)
+<!-- Chapter 2 -->  
+```{r 'ch2', child = "chapter2.Rmd"}
+```
 
+<a href="#top" class="return-link">Back to top.</a>
+
+***
+
+<!-- Chapter 3 -->
+<!-- Chapter 4 -->
+<!-- Chapter 5 -->
