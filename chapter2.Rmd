@@ -1,8 +1,10 @@
-```{r include=FALSE}
+```{r 'setup', include=FALSE}
 # Remove the '##' from each line of R output blocks
 knitr::opts_chunk$set(comment = '') 
-# Include dplyr
+# Include dplyr, ggplot2
 library(dplyr)
+library(ggplot2)
+library(GGally)
 ```
 
 # Week 2: Regression and model validation
@@ -19,7 +21,7 @@ With that out of the way, let's start the analysis part of the current exercise 
 ## The analysis data
 The analysis data was produced in "Data wrangling" part of the exercises. The original data is the "JYTOPKYS2" study data by Kimmo Vehkalahti. The original data is available from [here](https://www.mv.helsinki.fi/home/kvehkala/JYTmooc/JYTOPKYS3-data.txt) and the data is explained [here](https://www.mv.helsinki.fi/home/kvehkala/JYTmooc/JYTOPKYS2-meta.txt).
 
-The analysis data is a mix of original variables (`gender`, `age`, `attitude`, and `points`) and derived variables (`deep`, `stra`, and `surf`). The original and derived variables are explained as following, based on Vehkalahti's metadata. Note that the derived variables were omitted from the original data linked above - so that we'd have to calculate them ourselves - but they were included in the metadata.
+The analysis data is a mix of original variables (`gender`, `age`, `attitude`, and `points`) and derived variables (`deep`, `stra`, and `surf`). The original and derived variables are explained as following, based on Vehkalahti's metadata. Note that the derived variables were omitted from the original data linked above -- so that we'd have to calculate them ourselves -- but they were included in the metadata.
 
 | Variable | Meaning | Type | Notes |
 |----------|---------|------|-------|
@@ -31,13 +33,13 @@ The analysis data is a mix of original variables (`gender`, `age`, `attitude`, a
 | `stra`| Average score of answers related to Strategic approach | Number | Avg. of 12 answers |
 | `surf`| Average score of answers related to Surface approach | Number| Avg. of 8 answers |
 
-You can see the creation script [here](https://github.com/pkars/IODS-project/blob/master/data/create_learning2014.R) (most recent version) or the original from [commit `bb6de84`](https://github.com/pkars/IODS-project/blob/bb6de848b26bd4fbd3e909cce19831c8d86ccbee/data/create_learning2014.R)). The script stores the data to `learning2014.csv`, so let's start by reading that file and printing out the dataset structure, first few rows[^1], and some summary statistics.
+You can see the creation script [here](https://github.com/pkars/IODS-project/blob/master/data/create_learning2014.R) (most recent version) or the original from [commit `bb6de84`](https://github.com/pkars/IODS-project/blob/bb6de848b26bd4fbd3e909cce19831c8d86ccbee/data/create_learning2014.R)). The script stores the data to `learning2014.csv`, so let's start by reading that file and printing out the dataset structure, first few rows[^2.1], and some summary statistics.
 
-```{r}
+```{r 'input'}
 dset <- read.csv("data/learning2014.csv")
 ```
 
-```{r}
+```{r summary1}
 str(dset)
 knitr::kable(head(dset, 5))
 summary(dset)
@@ -45,10 +47,16 @@ count(dset, gender)
 ```
 
 This data contains 166 data points (rows). The original data has 187 rows, however the students with 0 points were omitted during the data wrangling. Out of the 166 remaining students, 110 were female and 56 were male. The students' age ranges from 17 to 55 years, with median at 22 years. 
+```{r 'pairplot', out.width='100%'}
+ggpairs(dset, 
+        mapping = aes(col = gender, alpha = 0.3), 
+        lower = list(combo=wrap("facethist", bins=20))
+       )
+```
 
 ## Fitting the linear model
 
 ## Interpreting the model and the model diagnostics
 
 
-[^1]: I'm using the `knitr::kable` function here to output prettier tables. It doesn't affect the data values in any way, it is a purely aesthetic helper function.
+[^2.1]: I'm using the `knitr::kable` function here to output prettier tables. It doesn't affect the data values in any way, it is a purely aesthetic helper function.
