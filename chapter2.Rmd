@@ -50,7 +50,7 @@ dset <- read.csv("data/learning2014.csv")
 
 ```{r summary1}
 str(dset)
-knitr::kable(head(dset, 5))  # See footnote 
+knitr::kable(head(dset, 5))  # Prettier table, see also footnote 
 summary(dset)
 count(dset, gender)
 ```
@@ -108,13 +108,23 @@ Okay, so, the left and right figures have `attitude` and `stra` respectively as 
 model <- lm(points ~ attitude, dset)
 summary(model)
 ```
-Yes, there is some change. Most drastic change is in intercept's significance: the t-value nearly doubled and the corresponding probability value became five magnitudes smaller. Also, the residuals minimum, maximum, and median got all a little closer to zero. Although both multiple and adjusted R^2^ value took a minor hit (they weren't very high to begin with, though). Speaking of R^2^ values being low, 
+
+Yes, there is some change. Most drastic change is in intercept's significance: the t-value nearly doubled and the corresponding probability value became five magnitudes smaller. Also, the residuals minimum, maximum, and median got all a little closer to zero. Although both multiple and adjusted R^2^ value took a minor hit (they weren't very high to begin with, though). Speaking of R^2^ values being low, looks like our simple linear model explains only about 19% of the variance. That might be acceptable for this study, but I'd be cautious to use this model in forecasting. Regardless, it shows that there is a relationship between the two variables.
 
 ## Interpreting the model and the model diagnostics
 So, based on the above analysis, the student's attitude towards statistics can indicate their course performance: more enthusiastic student is likely to perform better than a student who is not very interested in statistics. However, having a good attitude towards statistics won't guarantee them success! There must be something else, as the scatter plot for `points ~ attitude` hints: the points are rather spread out from the regression line.
 
-To conclude the analysis, I'll study the model's diagnostics a bit. A good data science practice calls for critical evaluation of the model -- 
+To conclude the analysis, I'll study the model's diagnostics a bit. A good data science practice calls for critical evaluation of the model -- you shouldn't blindly trust a model output without knowing if the model is reliable and trustworthy. In linear regression, we implicitly assume a couple of things about our random errors:
 
+1. The errors are normally distributed
+2. The error distribution has a zero mean and a constant variance
+3. The errors are not correlated with each other
+
+For checking the validity of these assumptions, the figure below shows two diagnostics plots: Residuals vs. Fitted and Normal Q-Q plot. The first one should have no visible pattern if the assumptions are true. Well, that doesn't seem to be the case here. The residuals seem to converge towards zero when fitted value increases. That indicates that the variance of errors is not constant, violating the second point listed above. The Q-Q plot shows how well the residual distribution matches an idealised (theoretical) normal distribution. The points on the figure should be close to a straight line -- for two identical distributions the points would all be on the dotted line in the figure. If the points deviate from the line, then the normal distribution assumption doesn't hold. In the picture, there is a slight curve on the points, and the outernmost quantiles clearly deviate from the ideal line. So, the normality assumption is violated at the edges of the distribution -- at the center the distribution is almost "normal".
+
+Then, there is a question of outliers, which are data points that deviate from the main body of data points. Does our data have outliers, that will distort the fitting process by having strong "leverage"? The third plot, "Residuals vs Leverage" answers this question. As the leverages are quite small (<0.05), there doesn't seem to be any data points that would affect our fit disproportionately. Turns out the data points with large residuals were close to the centerpoint of the linear fit, so they didn't have that much leverage.
+
+In conclusion, the model can indicate something about the relationship between the students' performance and their attitude towards statistics, but the model is not very good for prediction purposes. A linear regression model is not suitable for this data -- an approach with less assumptions about the random errors is required.
 
 ```{r 'diagnostics', fig.height=8}
 par(mfrow = c(2,2))
