@@ -47,16 +47,33 @@ count(dset, gender)
 ```
 
 This data contains 166 data points (rows). The original data has 187 rows, however the students with 0 points were omitted during the data wrangling. Out of the 166 remaining students, 110 were female and 56 were male. The students' age ranges from 17 to 55 years, with median at 22 years. 
-```{r 'pairplot', out.width='100%'}
+```{r 'pairplot', fig.height=10, fig.width=10, out.width='100%'}
 ggpairs(dset, 
         mapping = aes(col = gender, alpha = 0.3), 
         lower = list(combo=wrap("facethist", bins=20))
        )
 ```
 
+```{r 'corrtable'}
+cor(dset[-1])  # Exclude 'gender' column
+```
 ## Fitting the linear model
+```{r 'linearmodel'}
+# Target: points
+# Explanatory variables (3): attitude, stra, surf
+#   based on absolute value of correlation coefficient (Pearson)
+model <- lm(points ~ attitude + stra + surf, dset)
+summary(model)
+```
 
 ## Interpreting the model and the model diagnostics
+
+```{r 'diagnostics-plots'}
+#par(mfrow = c(2,2))
+plot(model, which=c(1,2,5))
+
+```
+
 
 
 [^2.1]: I'm using the `knitr::kable` function here to output prettier tables. It doesn't affect the data values in any way, it is a purely aesthetic helper function.
