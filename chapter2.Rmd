@@ -1,4 +1,4 @@
-# Week 2: Regression and model validation
+# Regression and model validation
 This section is the report for the second week of IODS. To start with, here are the instructions given for writing this report:
 
 >*Describe the work you have done this week and summarize your learning.*
@@ -68,6 +68,7 @@ cor(dset[-1])  # Exclude 'gender' column
 ```
 
 ## Fitting the linear model
+Next up is a task to fit a linear model to the data, where `points` is the target variable and one or more other variables are the explanatory variables. First instruction was to select three explanatory variables. I chose `attitude`, `stra`, and `surf` as their correlation coefficients with `points` were the largest (absolute value). And the results are...
 ```{r 'linearmodel'}
 # Target: points
 # Explanatory variables (3): attitude, stra, surf
@@ -75,35 +76,49 @@ cor(dset[-1])  # Exclude 'gender' column
 model <- lm(points ~ attitude + stra + surf, dset)
 summary(model)
 ```
-Yeah, not good stats. Drop `surf` as it is not meaningful at all.
+
+Yeah, not so good. First, I'll have to quickly interpret the output. First is the distribution of residuals. A (minimum) residual of "-17" seems rather large (it's absolute value, that is), when the points range from 7 to 33 -- there might be some strong outliers. At least median is close to zero, which is reassuring. Next are the coefficients for the linear regression. The `estimate` column shows the slope of the linear regression (except for the intercept it shows the value of "target" when all explanatory variables are zero). So having zero attitude and learning strategies you'd expect a student to get 11 points. For the slopes, the value means "the increase or decrease in points, when attitude/strategic learning/surface learning value increases by one unit". So, having larger `attitude` and `stra` scores would indicate better performance, whereas larger `surf` score would decrease performance. Next column, `Std. Error`, shows the standard error of the estimate. Third column, `t value`, shows the t-statistic -- which is a measure of the estimates statistical significance. However that value is rather transient by itself, so we'll rely on the fourth column to interpret the t-statistic. This column shows the *probability of having this particular non-zero value for estimate by random chance*, or in other words, how confident we can be in rejecting the null hypothesis. One more time for the non-statisticians like me: the smaller p-value is, the more we can trust that our target and explanatory variable have a relationship -- i.e. the slope is not zero. Other interesting numbers are the R-squared values: they estimate "the fraction of variance explained by the model". Zero means that our model cannot explain anything about the target variable, while one would mean that our model explains everything, including any random errors.
+
+So, looking at the significance of the estimates, it looks like that only the `attitude` has any explaining power here. But `stra` is close. The R^2^ values indicate that we're not capturing the majority of the variance with this model -- or that our data is really noisy and has plenty of unknown random errors. Let's try to improve the model by dropping `surf` as it is not meaningful at all; maybe it masks `stra` a little. 
 ```{r 'linearmodel2'}
-model <- lm(points ~ attitude, dset)
+model <- lm(points ~ attitude + stra, dset)
 summary(model)
 ```
-Better.
 
-```{r}
-p_att <- ggplot(dset, mapping=aes(attitude, points)) +
-           geom_point() +
-           geom_smooth(method="lm") + 
-           labs(title="title")
+Well, there is a slight improvement for `stra`. Also, the intercept got more significant! Cool. Also, adjusted R^2^ slightly improved. However, the `stra` is still a little suspect whether it truly has some explaining power. Let's inspect it a little further by *plotting* the scatterplots for `points ~ attitude` and `points ~ stra`:
+
+```{r 'scatterplots', fig.width=8}
+# Do scatterplots with ggplot2: prettier figures and include a linear regression fit easily!
+p_att <- ggplot(dset, mapping=aes(attitude, points)) +         # Set up the figure
+           geom_point() +                                      # Add scatter points
+           geom_smooth(method="lm") +                          # Add linear regression with confidence interval
+           labs(title="points vs. attitude (with regression)") # Add title for the plot
         
 p_stra <- ggplot(dset, mapping=aes(stra, points)) +
             geom_point() +
             geom_smooth(method="lm") +
-            labs(title="title")
+            labs(title="points vs. stra (with regression)")
 
+# Use gridExtra package to present the figures side-by-side. Saves some screen space :)
 grid.arrange(p_att, p_stra, nrow=1, ncol=2)
 ```
 
-## Interpreting the model and the model diagnostics
+Okay, so, the left and right figures have `attitude` and `stra` respectively as explanatory variable. As expected, `attitude` shows at least some linear pattern in the scatter plot. Though there are some points rather far away from the regression line (I'll explore this in a bit)... On the contrary, `stra` plot doesn't seem to have any discernible pattern, and the regression line's slope is quite close to zero. So I'm not convinced that `stra` would be a good explanatory variable here. Let's see what happens when I drop `stra` also...
+```{r 'linearmodel3'}
+model <- lm(points ~ attitude, dset)
+summary(model)
+```
+Yes, there is some change. Most drastic change is in intercept's significance: the t-value nearly doubled and the corresponding probability value became five magnitudes smaller. Also, the residuals minimum, maximum, and median got all a little closer to zero. Although both multiple and adjusted R^2^ value took a minor hit (they weren't very high to begin with, though). Speaking of R^2^ values being low, 
 
-```{r 'diagnostics-plots', fig.height=8}
+## Interpreting the model and the model diagnostics
+So, based on the above analysis, the student's attitude towards statistics can indicate their course performance: more enthusiastic student is likely to perform better than a student who is not very interested in statistics. However, having a good attitude towards statistics won't guarantee them success! There must be something else, as the scatter plot for `points ~ attitude` hints: the points are rather spread out from the regression line.
+
+To conclude the analysis, I'll study the model's diagnostics a bit. A good data science practice calls for critical evaluation of the model -- 
+
+
+```{r 'diagnostics', fig.height=8}
 par(mfrow = c(2,2))
 plot(model, which=c(1,2,5))
-
 ```
-
-
 
 [^2.1]: I'm using the `knitr::kable` function here to output prettier tables. It doesn't affect the data values in any way, it is a purely aesthetic helper function.
