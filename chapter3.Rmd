@@ -1,6 +1,6 @@
 # Logistic regression
 A new week, a new report! First, I need to set up the libraries and knitr options.
-```{r 'setup', message=FALSE, echo=-1:-5}
+```{r 'ch3-setup', message=FALSE, echo=-1:-5}
 # knitr is used to build this report, so it is included by default
 
 # Remove the '##' from each line of R output blocks
@@ -146,7 +146,7 @@ So, the Odds Ratio (OR) is defined as $OR = p / (1 - p)$, where $p = P(Y=1)$, wh
 
 P. Cortez and A. Silva. Using Data Mining to Predict Secondary School Student Performance. In A. Brito and J. Teixeira Eds., Proceedings of 5th FUture BUsiness TEChnology Conference (FUBUTEC 2008) pp. 5-12, Porto, Portugal, April, 2008, EUROSIS, ISBN 978-9077381-39-7. [Web Link](http://www3.dsi.uminho.pt/pcortez/student.pdf)
 
-```{r stash, include=FALSE}
+```{r ch3-stash, include=FALSE}
 # Don't show these
 
 ## Frequency instead of count
