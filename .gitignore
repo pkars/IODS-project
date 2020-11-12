@@ -5,3 +5,6 @@
 
 # Ignore created datasets
 data/*.csv
+
+# Ignore downloaded zip files
+data/*.zip
