@@ -1,0 +1,162 @@
+# Logistic regression
+A new week, a new report! First, I need to set up the libraries and knitr options.
+```{r 'setup', message=FALSE, echo=-1:-5}
+# knitr is used to build this report, so it is included by default
+
+# Remove the '##' from each line of R output blocks
+knitr::opts_chunk$set(comment = '')
+
+# knitr options: No "##" before output
+library(dplyr)
+library(ggplot2)
+library(GGally)
+library(gridExtra)
+library(tidyr)
+library(reshape2)
+```
+
+## Data
+Today's data is from UCI Machine Learning Repository,
+kindly provided by Paulo Cortez. The data is [Student Performance Data Set](https://archive.ics.uci.edu/ml/datasets/Student+Performance) (Cortez and Silva, 2008). The authors describe the dataset as following:
+
+*"This data approach student achievement in secondary education of two Portuguese schools. The data attributes include student grades, demographic, social and school related features) and it was collected by using school reports and questionnaires. Two datasets are provided regarding the performance in two distinct subjects: Mathematics (mat) and Portuguese language (por). In [Cortez and Silva, 2008], the two datasets were modeled under binary/five-level classification and regression tasks. Important note: the target attribute G3 has a strong correlation with attributes G2 and G1. This occurs because G3 is the final year grade (issued at the 3rd period), while G1 and G2 correspond to the 1st and 2nd period grades. It is more difficult to predict G3 without G2 and G1, but such prediction is much more useful (see paper source for more details)."*
+
+However, I've modified the data as following (see the R script [here](https://github.com/pkars/IODS-project/blob/master/data/create_alc.R)):
+
+- Join the two datasets using 13 identifying variables: `"school", "sex", "age", "address", "famsize", "Pstatus", "Medu", "Fedu", "Mjob", "Fjob", "reason", "nursery", "internet"`
+- For each column that was not used in joining and appeared in both datasets, combine them into one by taking the average value (numerical values) or the value in the first column (categorical values).
+- Calculate average alcohol use (column `alc_use`) by calculating the mean of weekday and weekend alcohol use values.
+- Create a logical column `high_use` where `TRUE` denotes the students who have average alcohol use value greater than 2.
+
+Here are the variables and their explanations (adapted from the data source website):,
+
+| Variable | Meaning | Datatype | Type | Notes |
+|-|---|-|-|--|
+|school       |student's school             | Categorical | *Identifier*|'GP' - Gabriel Pereira or 'MS' - Mousinho da Silveira |
+|sex          |student's sex                | Categorical | *Identifier*|'F' - female or 'M' - male |
+|age          |student's age                | Numeric     | *Identifier*|from 15 to 22 |
+|address      |student's home address type  | Categorical | *Identifier*|'U' - urban or 'R' - rural |
+|famsize      |family size                  | Categorical | *Identifier*|'LE3' - less or equal to 3 or 'GT3' - greater than 3|
+|Pstatus      |parent's cohabitation status | Categorical | *Identifier*|'T' - living together or 'A' - apart|
+|Medu         |mother's education           | Categorical | *Identifier*| 0 - none, 1 - primary education (4th grade), 2 - 5th to 9th grade, 3 - secondary education or 4 - higher education|
+|Fedu         |father's education           | Categorical | *Identifier*| 0 - none, 1 - primary education (4th grade), 2 - 5th to 9th grade, 3 - secondary education or 4 - higher education|
+|Mjob         |mother's job                 | Categorical | *Identifier*|'teacher', 'health' care related, civil 'services' (e.g. administrative or police), 'at_home' or 'other'|
+|Fjob         |father's job                 | Categorical | *Identifier*|'teacher', 'health' care related, civil 'services' (e.g. administrative or police), 'at_home' or 'other' |
+|reason       |reason to choose this school | Categorical | *Identifier*|close to 'home', school 'reputation', 'course' preference or 'other'|
+|guardian     |student's guardian           | Categorical | Original    |'mother', 'father' or 'other'|
+|traveltime   |home to school travel time   | Categorical | Original    |1 - <15 min., 2 - 15 to 30 min., 3 - 30 min. to 1 hour, or 4 - >1 hour|
+|studytime    |weekly study time            | Categorical | Original    |1 - <2 hours, 2 - 2 to 5 hours, 3 - 5 to 10 hours, or 4 - >10 hours|
+|failures     |number of past class failures| Categorical | Original    |n if 1<=n<3, else 4|
+|schoolsup    |extra educational support    | Categorical | Original    |yes or no|
+|famsup       |family educational support   | Categorical | Original    |yes or no|
+|paid         |extra paid classes within the course subject (Math or Portuguese)| Categorical | Original | yes or no|
+|activities   |extra-curricular activities  | Categorical | Original    |yes or no|
+|nursery      |attended nursery school      | Categorical | *Identifier*|yes or no|
+|higher       |wants to take higher education|Categorical | Original    |yes or no|
+|internet     |Internet access at home      | Categorical | *Identifier*|yes or no|
+|romantic     |with a romantic relationship | Categorical | Original    |yes or no|
+|famrel       |quality of family relationships|Categorical| Original    |from 1 - very bad to 5 - excellent|
+|freetime     |free time after school       | Categorical | Original    |from 1 - very low to 5 - very high|
+|goout        |going out with friends       | Categorical | Original    |from 1 - very low to 5 - very high|
+|Dalc         |workday alcohol consumption  | Categorical | Original    |from 1 - very low to 5 - very high|
+|Walc         |weekend alcohol consumption  | Categorical | Original    |from 1 - very low to 5 - very high|
+|health       |current health status        | Categorical | Original    |from 1 - very bad to 5 - very good|
+|absences     |number of school absences    | Numeric     | Original    |from 0 to 93 |
+|G1           |first period grade           | Numeric     | Original    |from 0 to 20 |
+|G2           |second period grade          | Numeric     | Original    |from 0 to 20 |
+|G3           |final grade                  | Numeric     | Original    |from 0 to 20 |
+|alc_use      |Average alcohol usage        | Numeric     | Calculated  |Avg. of `Dalc`and `Walc` |
+|high_use     |Has high alcohol consumption | Boolean     | Calculated  |`alc_use > 2` |
+
+So, with that out of the way, let's see the actual data.
+```{r}
+dataset <- read.csv("data/alc.csv", header=TRUE)
+str(dataset)
+```
+This time I've omitted showing `head`, as the table is *pretty wide*. However, the dataframe summary shows the first values from each column, so that'll do. Most of the variables are categorical data - although the authors have used integers to denote some of the classes.
+
+## Research question(s)
+Next, I'll explore four variables (`absences`, `health`, `freetime`, `famrel`) and their relationship with high or low alcohol consumption. My initial hypothesis would be that high value for `absences` corresponds to high alcohol usage (`high_use=TRUE`) whereas for `health` and `famrel` the higher values indicate low alcohol consumption. I suspect that the `freetime` variable might not have any discernible relationship with alcohol usage, as it measures the amount of free time, not how the student spends the time. A lot of free time only increases the number of opportunities to drink alcohol, which may or may not lead to actual consumption.
+
+```{r}
+# Attach a ID number for each row and select only the columns-of-interest
+data <- mutate(dataset, ID = row_number()) %>%
+  select(any_of(c("ID", "high_use", "absences", "health", "freetime", "famrel")))
+# Let's see...
+summary(data[-1])  # Ignore ID
+
+# Plot with ggplot2, line chart for absences and bar charts for others
+p1 <- ggplot(data, aes(absences)) + stat_count(geom="line", aes(colour=high_use) )
+p2 <- ggplot(data, aes(health)) + geom_bar(aes(fill=high_use), position="dodge")
+p3 <- ggplot(data, aes(freetime)) + geom_bar(aes(fill=high_use), position="dodge")
+p4 <- ggplot(data, aes(famrel)) + geom_bar(aes(fill=high_use), position="dodge")
+
+# Use gridExtra package to present the figures side-by-side. Saves some screen space :)
+grid.arrange(p1, p2, p3, p4, nrow=2, ncol=2)
+```
+
+Well, guess I was wrong. `freetime` seems to have the clearest signal, as the peaks are at 3 for `high_use=FALSE` and at 4 for `high_use=TRUE`. For other plots, it's kinda hard to see any signal. Probably this kind of visual inspection isn't the best tool here. Let's print out some numbers.
+
+```{r}
+table(high_use = data$high_use, absences = cut(data$absences, include.lowest=T, breaks=c(0,1,5,10,15,20,30)))%>% proportions() %>% round(digits=3) %>% addmargins
+table(high_use = data$high_use, health = data$health)%>% proportions() %>% round(digits=3) %>% addmargins
+table(high_use = data$high_use, freetime = data$freetime)%>% proportions() %>% round(digits=3) %>% addmargins
+table(high_use = data$high_use, famrel = data$famrel) %>% proportions() %>% round(digits=3) %>% addmargins
+```
+So, for absences it looks like the `FALSE` dominates the ratio at low levels while `TRUE` gets a larger piece of the pie at high values. So I think my hypothesis was correct for that one. For freetime the proportion of `TRUE` increases from lowest to highest class, though it never dominates. I don't see any clear signal in `health` and `famrel` tables. So, for my hypotheses:
+
+- `absences`: CORRECT
+- `health`: inconlusive
+- `freetime`: WRONG
+- `famrel`: inconclusive
+
+Well, that's that. The more you know!
+
+## Regression
+Moving on to the logistic regression, we'll see if The Machine has more insight than I have. Probably, as it is *much* better at number-crunching than I am.
+```{r}
+# Fit a model!
+model <- glm(high_use ~ absences + health + freetime + famrel, data=data, family="binomial")
+summary(model)
+```
+So, `absences`, `health` and `freetime` have a positive coefficient and `famrel` a negative. So maybe I got that last one right, after all?
+Anyways, health is not a significant variable here, so I'll dump it and play with the remaining three.
+
+
+```{r}
+# Re-fit without health
+model <- glm(high_use ~ absences + freetime + famrel, data=data, family="binomial")
+summary(model)
+
+# Odds ratio and confidence intervals
+OR <- coef(model) %>% exp
+CI <- confint(model) %>% exp
+
+cbind(OR,CI) # SHOW IT TO ME!
+
+```
+So, the Odds Ratio (OR) is defined as $OR = p / (1 - p)$, where $p = P(Y=1)$, which denotes *probability that our target is `TRUE`*. So when the OR is greater than 1, then our target becomes more likely to be `TRUE` than `FALSE` when our estimator increases in value[^2]. Based on the numbers, increasing number of absences and more free time available correspond to high alcohol consumption, while improving family relations decreases the alcohol consumption. So, let's revise my hypotheses:
+
+- `absences`: CORRECT
+- `health`: inconlusive (statistically not significant)
+- `freetime`: WRONG
+- `famrel`: CORRECT
+
+## References
+
+P. Cortez and A. Silva. Using Data Mining to Predict Secondary School Student Performance. In A. Brito and J. Teixeira Eds., Proceedings of 5th FUture BUsiness TEChnology Conference (FUBUTEC 2008) pp. 5-12, Porto, Portugal, April, 2008, EUROSIS, ISBN 978-9077381-39-7. [Web Link](http://www3.dsi.uminho.pt/pcortez/student.pdf)
+
+```{r stash, include=FALSE}
+# Don't show these
+
+## Frequency instead of count
+#p1 <- ggplot(data, aes(absences)) + stat_count(geom="line", aes(colour=high_use, y = (..count..)/sum(..count..)))
+#p2 <- ggplot(data, aes(health)) + geom_bar(aes(fill=high_use, y = (..count..)/sum(..count..)), position="dodge")
+#p3 <- ggplot(data, aes(freetime)) + geom_bar(aes(fill=high_use, y = (..count..)/sum(..count..)), position="dodge")
+#p4 <- ggplot(data, aes(famrel)) + geom_bar(aes(fill=high_use, y = (..count..)/sum(..count..)), position="dodge")
+
+## Use gridExtra package to present the figures side-by-side. Saves some screen space :)
+#grid.arrange(p1, p2, p3, p4, nrow=2, ncol=2)
+```
+
+[^2]: For factor variables the interpretation is "how the probability changes compared to a baseline class when our estimator moves from baseline to *this* class".
