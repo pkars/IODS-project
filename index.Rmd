@@ -32,5 +32,12 @@ output:
 ***
 
 <!-- Chapter 3 -->
+```{r 'ch3', child = "chapter3.Rmd"}
+```
+
+<a href="#top" class="return-link">Back to top.</a>
+
+***
+
 <!-- Chapter 4 -->
 <!-- Chapter 5 -->
