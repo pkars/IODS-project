@@ -50,59 +50,62 @@ Looking at the summary, there are a couple of notable elements visible. First, t
 ```{r 'ch4-task3', message=FALSE}
 ggpairs(Boston)
 ```
-Okay, so, the `ggpairs` plot out-of-the-box isn't the most clearest presentation. Let's try some alternatives... First, let's take a look at the density plots for each variable. (I finally figured out how to do this, thanks StackOverflow! Yay, go me.) The only variable resembling a normal distribution is `rm`, which is *average number of rooms per dwelling*. Okay, makes sense as it is an average value. 
 
-
+Okay, so, the `ggpairs` plot out-of-the-box isn't the most clearest presentation. Let's try some alternatives... First, let's take a look at the density plots for each variable. (I finally figured out how to do this, thanks StackOverflow! Yay, go me.) The only variable resembling a normal distribution is `rm`, which is *average number of rooms per dwelling*. Okay, makes sense as it is an average value. Variables `indus`, `rad` and `tax` show two peaks, meaning that there are more towns with "low" and "high" values than "middle" values. The populace seems to be elderly, as the density increases (almost monotonically) as `age` gets larger. Variables `nox`, `dis`, `lstat` and `medv` are positively skewed and `ptratio` is negatively skewed.
 
 ```{r message=FALSE}
 longtable <- melt(Boston)
 ggplot(longtable, aes(value)) + geom_density() + facet_wrap(~variable, scales="free")
 ```
 
-The variable `black` looks like a mirrored version of `crim`. It's a derived value related to the proportion of black people. I don't know how the original dataset authors derived the function ($1000\left(Bk - 0.63\right)^2$), but the density graph shows that most of the towns have a proportion of black people that deviates from value 0.63. Plotting the function shows that when its value is over 375.38 (i.e. 1st quartile), the proportion of black people is under 0.02.
+Interestingly, the variable `black` looks like a mirrored version of `crim`. It's a derived value related to the proportion of black people. I don't know how the original dataset authors derived the function ($1000\left(Bk - 0.63\right)^2$), but the density graph shows that most of the towns have a proportion of black people that deviates from value 0.63. Plotting the function shows that when its value is over 375.38 (i.e. 1st quantile), the proportion of black people is under 0.02.
 
 ```{r}
 x <- 0:100 / 100
 y <- 1000*(x-0.63)^2
 plot(x,y, xlab="Proportion of black people", ylab="Function value")
-# Show the values of x when y > 375.38 (i.e. the value of 1st quartile)
+# Show the values of x when y > 375.38 (i.e. the value of 1st quantile)
 x[y > 375.38]
 ```
+
+Finally, let's plot the correlation between all variables using the fancy `corrplot` function from the `corrplot` library. From the picture, looks like `rad` and `tax` are strongly correlated (positive). That implies that the towns closer to more highways also tax their people more. Other notable correlations are `indus`, `nox` and `age` each negatively correlating with `dis`, and `lstat` correlating with `medv` negatively. Notably, the further away from an employment hotspot the town is, the less there is industrial activity and less pollution (indicated by amount of NO_x_) there is.
 
 ```{r message=FALSE}
 corrplot(cor(Boston), method="circle")
 ```
 
 ## Data wrangling
-**Standardize the dataset and print out summaries of the scaled data. How did the variables change?**
-Standardization is done by subtracting the mean from the values and dividing by the standard deviation for each column.
+Whew, that was a lot of text for simply exploring the data! Now I have to actually do something with it, so let's get to it! First, the data needs to be standardized, which is done by subtracting the mean from the values and dividing by the standard deviation for each column. Now the data has a mean value of zero for each column! Also, the values are now "how many standard deviations away they are from the mean value" instead of actual values. However, the density functions' form *did not* change, which is also what we want.
+
 ```{r 'ch4-task4-1'}
 scaled <- scale(Boston)
-#summary(boston_scaled)
+
 # scale() returns a matrix object, change it to a data.frame
 scaled <- as.data.frame(scaled)
 summary(scaled)
+
+longtable <- melt(scaled)
+ggplot(longtable, aes(value)) + geom_density() + facet_wrap(~variable, scales="free")
 ```
-**Create a categorical variable of the crime rate in the Boston dataset (from the scaled crime rate). Use the quantiles as the break points in the categorical variable. Drop the old crime rate variable from the dataset. **
+
+In this exercise, we're trying to ultimately predict the crime rate using Linear Discriminant Analysis (LDA). To do this, we first create a categorical target variable for crime rate by dividing the data. Here we do this by cutting the data into four quantiles.
+
 ```{r 'ch4-task4-2'}
 # create a quantile vector of crim and print it
 bins <- quantile(scaled$crim)
 bins
 
-# create a categorical variable 'crime'
+# create a categorical variable 'crime' and take a look using table()
 crime <- cut(scaled$crim, breaks = bins, include.lowest = TRUE, label=c("low", "med_low", "med_high", "high"))
-# 
-# # look at the table of the new factor crime
-# table(crime)
-# 
-# remove original crim from the dataset
+table(crime)
+
+# remove original `crim` and add the new `crime` variable to the dataset
+# Here I need to explicitly call dplyr::select, as MASS library also has a select function
 scaled <- dplyr::select(scaled, -crim)
-# 
-# add the new categorical value to scaled data
 scaled <- data.frame(scaled, crime)
 ```
 
-**Divide the dataset to train and test sets, so that 80% of the data belongs to the train set. (0-2 points)**
+Next up, we'll have to train and test the LDA model with our data. So, let's split the data to training and testing datasets using a 80:20 split. Also, the test data shouldn't contain the true labels so that we don't confuse our model, but we need that information for verifying our model. So let's store the labels into another object.
 ```{r 'ch4-task4-3'}
 # number of rows in the Boston dataset 
 n <- nrow(scaled)
@@ -110,14 +113,12 @@ n <- nrow(scaled)
 # choose randomly 80% of the rows
 ind <- sample(n,  size = n * 0.8)
 
-# create train set
+# create train and test sets
 train <- scaled[ind,]
-
-# create test set 
-test <- scaled[-ind,]
+test <- scaled[-ind,]  # note the minus!
 
 # save the correct classes from test data
-correct_classes <- test$crime
+correct_classes_for_test <- test$crime
 
 # remove the crime variable from test data
 test <- dplyr::select(test, -crime)
@@ -158,7 +159,7 @@ lda.arrows(lda.fit, myscale = 1)
 lda.pred <- predict(lda.fit, newdata = test)
 
 # cross tabulate the results
-table(correct = correct_classes, predicted = lda.pred$class)
+table(correct = correct_classes_for_test, predicted = lda.pred$class)
 ```
 
 ## k-means Clustering
@@ -242,159 +243,4 @@ matrix_product <- as.data.frame(matrix_product)
 
 **Adjust the code: add argument color as a argument in the plot_ly() function. Set the color to be the crime classes of the train set. Draw another 3D plot where the color is defined by the clusters of the k-means. How do the plots differ? Are there any similarities? (0-3 points to compensate any loss of points from the above exercises)**
 ```{r 'ch4-super-bonus'}
-```
-
-
-```{r 'ch4-stash', eval=FALSE, include=FALSE}
-# # calculate the correlation matrix and round it
-# cor_matrix<-cor(Boston) 
-# 
-# # print the correlation matrix
-# cor_matrix <- cor_matrix %>% round(digits=2)
-# cor_matrix
-# 
-# # visualize the correlation matrix
-# corrplot(cor_matrix, method="circle", type="upper",
-# cl.pos="b", tl.pos="d", tl.cex=0.6)
-# 
-# 
-# # MASS and Boston dataset are available
-# 
-# # center and standardize variables
-# boston_scaled <- scale(Boston)
-# 
-# # summaries of the scaled variables
-# summary(boston_scaled)
-# 
-# # class of the boston_scaled object
-# class(boston_scaled)
-# 
-# # change the object to data frame
-# boston_scaled <- as.data.frame(boston_scaled)
-# 
-# 
-# # MASS, Boston and boston_scaled are available
-# boston_scaled <- as.data.frame(scale(Boston))
-# # summary of the scaled crime rate
-# summary(boston_scaled)
-# 
-# # create a quantile vector of crim and print it
-# bins <- quantile(boston_scaled$crim)
-# bins
-# 
-# # create a categorical variable 'crime'
-# crime <- cut(boston_scaled$crim, breaks = bins, include.lowest = TRUE, label=c("low", "med_low", "med_high", "high"))
-# 
-# # look at the table of the new factor crime
-# table(crime)
-# 
-# # remove original crim from the dataset
-# boston_scaled <- dplyr::select(boston_scaled, -crim)
-# 
-# # add the new categorical value to scaled data
-# boston_scaled <- data.frame(boston_scaled, crime)
-# 
-# 
-# 
-# # boston_scaled is available
-# 
-# # number of rows in the Boston dataset 
-# n <- nrow(boston_scaled)
-# 
-# # choose randomly 80% of the rows
-# ind <- sample(n,  size = n * 0.8)
-# 
-# # create train set
-# train <- boston_scaled[ind,]
-# 
-# # create test set 
-# test <- boston_scaled[-ind,]
-# 
-# # save the correct classes from test data
-# correct_classes <- test$crime
-# 
-# # remove the crime variable from test data
-# test <- dplyr::select(test, -crime)
-# 
-# 
-# # MASS and train are available
-# 
-# # linear discriminant analysis
-# lda.fit <- lda(crime ~ ., data = train)
-# 
-# # print the lda.fit object
-# lda.fit
-# 
-# # the function for lda biplot arrows
-# lda.arrows <- function(x, myscale = 1, arrow_heads = 0.1, color = "red", tex = 0.75, choices = c(1,2)){
-#   heads <- coef(x)
-#   arrows(x0 = 0, y0 = 0, 
-#          x1 = myscale * heads[,choices[1]], 
-#          y1 = myscale * heads[,choices[2]], col=color, length = arrow_heads)
-#   text(myscale * heads[,choices], labels = row.names(heads), 
-#        cex = tex, col=color, pos=3)
-# }
-# 
-# # target classes as numeric
-# classes <- as.numeric(train$crime)
-# 
-# # plot the lda results
-# plot(lda.fit, dimen = 2, col=classes, pch=classes)
-# lda.arrows(lda.fit, myscale = 1)
-# 
-# 
-# # lda.fit, correct_classes and test are available
-# 
-# # predict classes with test data
-# lda.pred <- predict(lda.fit, newdata = test)
-# 
-# # cross tabulate the results
-# table(correct = correct_classes, predicted = lda.pred$class)
-# 
-# 
-# # load MASS and Boston
-# library(MASS)
-# data('Boston')
-# 
-# # euclidean distance matrix
-# dist_eu <- dist(Boston)
-# 
-# # look at the summary of the distances
-# summary(dist_eu)
-# 
-# # manhattan distance matrix
-# dist_man <- dist(Boston, method="manhattan")
-# 
-# # look at the summary of the distances
-# summary(dist_man)
-# 
-# 
-# # Boston dataset is available
-# 
-# # k-means clustering
-# km <-kmeans(Boston, centers = 3)
-# 
-# # plot the Boston dataset with clusters
-# pairs(Boston[6:10], col = km$cluster)
-# 
-# # MASS, ggplot2 and Boston dataset are available
-# set.seed(123)
-# 
-# # determine the number of clusters
-# k_max <- 10
-# 
-# # calculate the total within sum of squares
-# twcss <- sapply(1:k_max, function(k){kmeans(Boston, k)$tot.withinss})
-# 
-# # visualize the results
-# qplot(x = 1:k_max, y = twcss, geom = 'line')
-# 
-# # k-means clustering
-# km <-kmeans(Boston, centers = 2)
-# 
-# # plot the Boston dataset with clusters
-# pairs(Boston, col = km$cluster)
-# 
-
-
 ```
