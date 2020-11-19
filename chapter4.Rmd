@@ -148,49 +148,48 @@ lda.arrows <- function(x, myscale = 1, arrow_heads = 0.1, color = "red", tex = 0
 ## k-means Clustering
 **Reload the Boston dataset and standardize the dataset (we did not do this in the Datacamp exercises, but you should scale the variables to get comparable distances). Calculate the distances between the observations. Run k-means algorithm on the dataset. Investigate what is the optimal number of clusters and run the algorithm again. Visualize the clusters (for example with the pairs() or ggpairs() functions, where the clusters are separated with colors) and interpret the results. (0-4 points)**
 ```{r 'ch4-task7'}
+# Set seed for reproducible results, k-means algorithm sets the initial
+# cluster center points randomly.
+set.seed(2020)
+
 # Reload original Boston dataset
 data('Boston')
 
 # Scale the dataset
-boston_scaled <- scale(Boston)
-# 
-# # euclidean distance matrix
-# dist_eu <- dist(Boston)
-# 
-# # look at the summary of the distances
-# summary(dist_eu)
-# 
+boston_scaled <- scale(Boston) %>% as.data.frame()
+summary(boston_scaled)
+# Calculate euclidean distance and show it
+dist_eu <- dist(Boston)
+summary(dist_eu)
+ 
 # # manhattan distance matrix
 # dist_man <- dist(Boston, method="manhattan")
 # 
 # # look at the summary of the distances
 # summary(dist_man)
 # # 
-# # Boston dataset is available
-# 
-# # k-means clustering
-# km <-kmeans(Boston, centers = 3)
+
+# k-means clustering
+km <-kmeans(boston_scaled, centers = 3)
 # 
 # # plot the Boston dataset with clusters
 # pairs(Boston[6:10], col = km$cluster)
 # 
-# # MASS, ggplot2 and Boston dataset are available
-# set.seed(123)
-# 
+
 # # determine the number of clusters
-# k_max <- 10
+k_max <- 10
 # 
 # # calculate the total within sum of squares
-# twcss <- sapply(1:k_max, function(k){kmeans(Boston, k)$tot.withinss})
+twcss <- sapply(1:k_max, function(k){kmeans(boston_scaled, k)$tot.withinss})
 # 
 # # visualize the results
-# qplot(x = 1:k_max, y = twcss, geom = 'line')
+qplot(x = 1:k_max, y = twcss, geom = 'line')
 # 
 # # k-means clustering
 # km <-kmeans(Boston, centers = 2)
 # 
 # # plot the Boston dataset with clusters
-# pairs(Boston, col = km$cluster)
+pairs(boston_scaled, col = km$cluster)
 # 
 
 ```
@@ -200,15 +199,17 @@ boston_scaled <- scale(Boston)
 # Reload original Boston dataset
 data('Boston')
 # Scale the dataset
-boston_scaled <- scale(Boston)
+boston_scaled <- scale(Boston) %>% as.data.frame
+summary(boston_scaled)
 # # # k-means clustering
-# km <-kmeans(Boston, centers = 3)
+km <-kmeans(boston_scaled, centers = 7)
+summary(km)
 ```
 
 ## Super-Bonus Task
 **Super-Bonus: Run the code below for the (scaled) train data that you used to fit the LDA. The code creates a matrix product, which is a projection of the data points.**
-```{r}
-
+```{r 'ch4-super-bonus-provided'}
+# This script is provided in assignment #
 # model_predictors <- dplyr::select(train, -crime)
 # 
 # # check the dimensions
@@ -218,10 +219,8 @@ boston_scaled <- scale(Boston)
 # # matrix multiplication
 # matrix_product <- as.matrix(model_predictors) %*% lda.fit$scaling
 # matrix_product <- as.data.frame(matrix_product)
-```
-**Next, install and access the plotly package. Create a 3D plot (Cool!) of the columns of the matrix product by typing the code below.**
 
-```{r}
+# Next, install and access the plotly package. Create a 3D plot (Cool!) of the columns of the matrix product by typing the code below.
 # plot_ly(x = matrix_product$LD1, y = matrix_product$LD2, z = matrix_product$LD3, type= 'scatter3d', mode='markers')
 ```
 
