@@ -11,6 +11,7 @@ library(dplyr)
 library(ggplot2)
 library(GGally)
 library(gridExtra)
+library(reshape2)
 library(tidyr)
 library(MASS)  # Contains the used dataset
 library(corrplot)
@@ -36,21 +37,39 @@ Unlike previous weeks, this week we are using a dataset that we have not wrangle
 |lstat  | lower status of the population (percent).|
 |medv   | median value of owner-occupied homes in \$1000s. |
 
-The data is titled as *Housing Values in Suburbs of Boston*. The dataset contains 14 variables and 506 rows. All columns are numerical, although the variable `chas` is actually a boolean indicator represented as ones and zeros. Also as per usual, here are the outputs for `str` and `head` functions for the `Boston` dataset:
+The data is titled as *Housing Values in Suburbs of Boston*. The dataset contains 14 variables and 506 rows. All columns are numerical, although the variable `chas` is actually a boolean indicator represented as ones and zeros. Also as per usual, here are the outputs for `str`, `head` and `summary` functions for the `Boston` dataset:
 
 ```{r 'ch4-task2'}
-# Task 2
 data("Boston")  # Creates variable named Boston
 str(Boston)
 knitr::kable(head(Boston, 5))
+summary(Boston)
+```
+Looking at the summary, there are a couple of notable elements visible. First, the `crim` (*per capita crime rate by town*) variable is under 4 for most of the rows, but the maximum is *88.98*, almost three magnitudes larger than the median value (0.26)! The high discrepancy could be explained by the town in question having a low number of people, however the data doesn't include this value. The variable `zn` (*proportion of residential land zoned for lots over 25000 sq.ft.*) exhibits similar behavior: minimum and median values are both 0 and maximum value is 100. This tells that most of the towns have no residential lots over 25000 sq.ft. in size. Similarly for variable `chas`, which simply denotes which areas are connected to Charles River and which not. Data states that at least 75% of the data is not connected to the river. For drawing more insight from the rest of the data, let's plot a couple of pictures.
+
+```{r 'ch4-task3', message=FALSE}
+ggpairs(Boston)
+```
+Okay, so, the `ggpairs` plot out-of-the-box isn't the most clearest presentation. Let's try some alternatives... First, let's take a look at the density plots for each variable. (I finally figured out how to do this, thanks StackOverflow! Yay, go me.) The only variable resembling a normal distribution is `rm`, which is *average number of rooms per dwelling*. Okay, makes sense as it is an average value. 
+
+
+
+```{r message=FALSE}
+longtable <- melt(Boston)
+ggplot(longtable, aes(value)) + geom_density() + facet_wrap(~variable, scales="free")
 ```
 
+The variable `black` looks like a mirrored version of `crim`. It's a derived value related to the proportion of black people. I don't know how the original dataset authors derived the function ($1000\left(Bk - 0.63\right)^2$), but the density graph shows that most of the towns have a proportion of black people that deviates from value 0.63. Plotting the function shows that when its value is over 375.38 (i.e. 1st quartile), the proportion of black people is under 0.02.
 
-**Show a graphical overview of the data and show summaries of the variables in the data. Describe and interpret the outputs, commenting on the distributions of the variables and the relationships between them. (0-2 points)**
-```{r 'ch4-task3'}
-# Task 3
-summary(Boston)
-pairs(Boston)
+```{r}
+x <- 0:100 / 100
+y <- 1000*(x-0.63)^2
+plot(x,y, xlab="Proportion of black people", ylab="Function value")
+# Show the values of x when y > 375.38 (i.e. the value of 1st quartile)
+x[y > 375.38]
+```
+
+```{r message=FALSE}
 corrplot(cor(Boston), method="circle")
 ```
 
