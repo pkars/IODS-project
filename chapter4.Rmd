@@ -15,6 +15,7 @@ library(reshape2)
 library(tidyr)
 library(MASS)  # Contains the used dataset
 library(corrplot)
+set.seed(2020)
 ```
 
 ## Data description
@@ -169,8 +170,6 @@ Well, looks like the model is successful in predicting the crime rate classes - 
 |high       | 19/20 (95%) |  1/20  | 0/19 (0%)|
 
 ## k-means Clustering
-**Reload the Boston dataset and standardize the dataset (we did not do this in the Datacamp exercises, but you should scale the variables to get comparable distances). Calculate the distances between the observations. Run k-means algorithm on the dataset. Investigate what is the optimal number of clusters and run the algorithm again. Visualize the clusters (for example with the pairs() or ggpairs() functions, where the clusters are separated with colors) and interpret the results. (0-4 points)**
-
 Finally, we'll practice some clustering with the "clustering hello world algorithm", also known as k-means clustering. Basically this algorithm creates *k* clusters by finding *k* points that minimize the mean distance between the "k-points" and the data points (though it's not foolproof, the outcome depends on where the initial k-points are). Each data point is assigned to the nearest k-point, which forms the cluster.
 
 Moving on, now that short (and probably a bit unnecessary) introduction is out of the way, I'll reload the original `Boston` dataset and scale it once again for clustering.
@@ -191,64 +190,91 @@ dist_man <- dist(boston_scaled, method="manhattan")
 summary(dist_man)
 ```
 
-
+Okay, next up is the actual clustering. Let's start with three k-points and see the result.
 
 ```{r 'ch4-task7-2'}
-# k-means clustering
 km <-kmeans(boston_scaled, centers = 3)
-# 
-# # plot the Boston dataset with clusters
-# pairs(Boston[6:10], col = km$cluster)
-# 
-
-# # determine the number of clusters
-k_max <- 10
-# 
-# # calculate the total within sum of squares
-twcss <- sapply(1:k_max, function(k){kmeans(boston_scaled, k)$tot.withinss})
-# 
-# # visualize the results
-qplot(x = 1:k_max, y = twcss, geom = 'line')
-# 
-# # k-means clustering
-# km <-kmeans(Boston, centers = 2)
-# 
-# # plot the Boston dataset with clusters
-pairs(boston_scaled, col = km$cluster)
-# 
-ggpairs(boston_scaled, aes(col=km$cluster))
+# Plot a subset of boston_scaled data with clusters colored, just to see how it looks like
+pairs(boston_scaled[5:9], col = km$cluster)
 ```
+
+I don't know whose idea it was to have black, *red* and *green* as the three first default colors in R... I just hope that these shades of red and green are distinct enough for (red-green) colorblind people are able to tell the difference. And wow, the clusters swap colors when I replot the figure! Yeah, I really have to learn the `ggplot2` library by heart if I'm ever going to use R outside this course. But I digress. Moving on...
+
+Multiple methods for figuring out the optimal value for *k* exist, but here we use a metric called *total of within cluster sum of squares* (WCSS). The optimal number for k is where the WCSS has a ***radical*** drop! The `kmeans` function returns an object that handily provides the WCSS value in `tot.withinss` component. The DataCamp exercises graciously include an one-liner to calculate WCSS for the data using `k=1...k_max`, so I'm totally going to use that one! Let's set `k_max` to 10 to limit the iterations a bit and then we'll look for the optimal value visually - i.e by plotting `WCSS(k)`.
+
+```{r 'ch4-task7-3', message=FALSE}
+# Maximum number of clusters considered here
+k_max <- 10
+
+# This one is also copied from DataCamp...
+# calculate the total within sum of squares
+twcss <- sapply(1:k_max, function(k){kmeans(boston_scaled, k)$tot.withinss})
+
+# Visualise!
+qplot(x = 1:k_max, y = twcss, geom = c('line', 'point'))
+```
+
+The most ***radical*** decrease would be from going `k=1` to `k=2`, so the value 2 seems to be a great candidate. Though the WCSS values drop up to `k=9`, so something like 5 or 7 might be potential candidates. But 2 makes it so that there will be only two colors in the up-coming plots, making them a bit easier to interpret. So I'll use `k=2`.[^3]
+
+```{r 'ch4-task7-4', message=FALSE, warning=FALSE}
+# Re-cluster the data
+km <-kmeans(boston_scaled, centers = 2)
+# 
+# plot the Boston dataset with clusters
+# This time the full dataset with ggpairs -- it's stil going to be a mess, but it'll be a pretty mess.
+ggpairs(boston_scaled, aes(col=as.factor(km$cluster)))
+# This chunk emits a bunch of "Warning in cor(x, y): the standard deviation is zero" warning messages.
+```
+
+Yep, that's a pretty looking mess. Also that chunk emits a bunch of `Warning in cor(x, y): the standard deviation is zero` warning messages (I've omitted those as they're wasting space). Looks like the correlations for `zn` in the red class are `NA`, so that's probably where the standard deviation is zero. Anyways, let's first plot the density plots like before, and then check only a handful of variables with larger pictures.
+
+```{r 'ch4-task7-5', message=FALSE}
+with_colors <- boston_scaled
+with_colors$cluster <- as.factor(km$cluster)
+longtable <- melt(with_colors)
+ggplot(longtable, aes(value, col=cluster)) + geom_density() + facet_wrap(~variable, scales="free")
+```
+
+Well, that's interesting! Some of the variables now show two differing density curves -- essentially meaning that there could be a way to separate the data into two different groups. If you recall my pondering from the data exploration, I noted that `indus`, `rad` and `tax` variables show two peaks -- well, the two peaks seem to belong into different clusters! However, what I couldn't see before, was that also `age`, `dis`, `ptratio`, and arguably `lstat` and `medv`, would be a combination of two different (and separable) curves. `nox` being also very separable is not a surprise (in hindsight), when you already know that industrial zones cause more pollution than residential zones (typically).
+
+Let's pick some variables that look interesting.
+```{r message=FALSE, warning=FALSE}
+#with_colors <- boston_scaled
+#with_colors$cluster <- as.factor(km$cluster)
+subset <- dplyr::select(with_colors, c("indus", "age", "dis", "rad", "tax", "medv", "cluster"))
+#subset$cluster <- as.factor(subset$cluster)
+ggpairs(subset, aes(col=cluster))
+```
+
+Well, they look interesting. For example, `tax` looks to be separated quite nicely, same with `dis` and `age`. Old people live close to the industrial employment centers and pay more in taxes? That would be one plausible conclusion from this data.
+
 ## Bonus task
-**Bonus: Perform k-means on the original Boston data with some reasonable number of clusters (> 2). Remember to standardize the dataset. Then perform LDA using the clusters as target classes. Include all the variables in the Boston data in the LDA model. Visualize the results with a biplot (include arrows representing the relationships of the original variables to the LDA solution). Interpret the results. Which variables are the most influencial linear separators for the clusters? (0-2 points to compensate any loss of points from the above exercises)**
+Surprise! There are two bonus tasks for this week! There were some also for the last week, but I didn't do those. But it's getting a bit late, so this'll have to be short. The first one is to fit LDA for some number of clusters (>2). I chose 7. For that, the most influential variables seem to be `chas` and `rad`. The second bonus task, well, I can't manage everything.
 ```{r 'ch4-bonus'}
 # Reload original Boston dataset
 data('Boston')
+
 # Scale the dataset
-boston_scaled <- scale(Boston) %>% as.data.frame
-summary(boston_scaled)
-# # # k-means clustering
-km <-kmeans(boston_scaled, centers = 7)
+bonus_scaled <- scale(Boston) %>% as.data.frame
+summary(bonus_scaled)
+
+# k-means clustering with 7 clusters
+km <-kmeans(bonus_scaled, centers = 7)
 summary(km)
+
+# Add clusters to dataset
+bonus_scaled$cluster <- km$cluster
+
+# LDA fit targetting clusters
+lda.fit <- lda(cluster ~ ., data = bonus_scaled)
+lda.fit  # Just checking the output
+
+# target classes as numeric
+classes <- as.numeric(bonus_scaled$cluster)
+
+# plot the lda results
+plot(lda.fit, dimen = 2, col=classes, pch=classes)
+lda.arrows(lda.fit, myscale = 1)
 ```
 
-## Super-Bonus Task
-**Super-Bonus: Run the code below for the (scaled) train data that you used to fit the LDA. The code creates a matrix product, which is a projection of the data points.**
-```{r 'ch4-super-bonus-provided'}
-# This script is provided in assignment #
-model_predictors <- dplyr::select(train, -crime)
-
-# check the dimensions
-dim(model_predictors)
-dim(lda.fit$scaling)
- 
-# matrix multiplication
-matrix_product <- as.matrix(model_predictors) %*% lda.fit$scaling
-matrix_product <- as.data.frame(matrix_product)
-
-# Next, install and access the plotly package. Create a 3D plot (Cool!) of the columns of the matrix product by typing the code below.
-# plot_ly(x = matrix_product$LD1, y = matrix_product$LD2, z = matrix_product$LD3, type= 'scatter3d', mode='markers')
-```
-
-**Adjust the code: add argument color as a argument in the plot_ly() function. Set the color to be the crime classes of the train set. Draw another 3D plot where the color is defined by the clusters of the k-means. How do the plots differ? Are there any similarities? (0-3 points to compensate any loss of points from the above exercises)**
-```{r 'ch4-super-bonus'}
-```
+[^3]: I also got `k=3` as optimal value when I accidentally ran the code without setting seed beforehand. Whoops. Well, like I said, the results of k-means depend on the initial (random) points.
