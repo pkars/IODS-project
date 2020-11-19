@@ -77,68 +77,64 @@ corrplot(cor(Boston), method="circle")
 **Standardize the dataset and print out summaries of the scaled data. How did the variables change?**
 Standardization is done by subtracting the mean from the values and dividing by the standard deviation for each column.
 ```{r 'ch4-task4-1'}
-boston_scaled <- scale(Boston)
+scaled <- scale(Boston)
 #summary(boston_scaled)
 # scale() returns a matrix object, change it to a data.frame
-boston_scaled <- as.data.frame(boston_scaled)
-summary(boston_scaled)
+scaled <- as.data.frame(scaled)
+summary(scaled)
 ```
 **Create a categorical variable of the crime rate in the Boston dataset (from the scaled crime rate). Use the quantiles as the break points in the categorical variable. Drop the old crime rate variable from the dataset. **
 ```{r 'ch4-task4-2'}
-# # create a quantile vector of crim and print it
-# bins <- quantile(boston_scaled$crim)
-# bins
-# 
-# # create a categorical variable 'crime'
-# crime <- cut(boston_scaled$crim, breaks = bins, include.lowest = TRUE, label=c("low", "med_low", "med_high", "high"))
+# create a quantile vector of crim and print it
+bins <- quantile(scaled$crim)
+bins
+
+# create a categorical variable 'crime'
+crime <- cut(scaled$crim, breaks = bins, include.lowest = TRUE, label=c("low", "med_low", "med_high", "high"))
 # 
 # # look at the table of the new factor crime
 # table(crime)
 # 
-# # remove original crim from the dataset
-# boston_scaled <- dplyr::select(boston_scaled, -crim)
+# remove original crim from the dataset
+scaled <- dplyr::select(scaled, -crim)
 # 
-# # add the new categorical value to scaled data
-# boston_scaled <- data.frame(boston_scaled, crime)
-
-# # boston_scaled is available
-
+# add the new categorical value to scaled data
+scaled <- data.frame(scaled, crime)
 ```
 
 **Divide the dataset to train and test sets, so that 80% of the data belongs to the train set. (0-2 points)**
 ```{r 'ch4-task4-3'}
+# number of rows in the Boston dataset 
+n <- nrow(scaled)
 
-# # number of rows in the Boston dataset 
-# n <- nrow(boston_scaled)
-# 
-# # choose randomly 80% of the rows
-# ind <- sample(n,  size = n * 0.8)
-# 
-# # create train set
-# train <- boston_scaled[ind,]
-# 
-# # create test set 
-# test <- boston_scaled[-ind,]
-# 
-# # save the correct classes from test data
-# correct_classes <- test$crime
-# 
-# # remove the crime variable from test data
-# test <- dplyr::select(test, -crime)
-# 
+# choose randomly 80% of the rows
+ind <- sample(n,  size = n * 0.8)
+
+# create train set
+train <- scaled[ind,]
+
+# create test set 
+test <- scaled[-ind,]
+
+# save the correct classes from test data
+correct_classes <- test$crime
+
+# remove the crime variable from test data
+test <- dplyr::select(test, -crime)
+
 ```
 
 ## Linear Discriminant Analysis
 **Fit the linear discriminant analysis on the train set. Use the categorical crime rate as the target variable and all the other variables in the dataset as predictor variables. Draw the LDA (bi)plot. (0-3 points)**
 ```{r 'ch4-task5'}
-# # linear discriminant analysis
-# lda.fit <- lda(crime ~ ., data = train)
-# 
-# # print the lda.fit object
-# lda.fit
-# 
+# linear discriminant analysis
+lda.fit <- lda(crime ~ ., data = train)
+
+# print the lda.fit object
+lda.fit
+
 # Function lifted directly from DataCamp exercises
-# # the function for lda biplot arrows
+# the function for lda biplot arrows
 lda.arrows <- function(x, myscale = 1, arrow_heads = 0.1, color = "red", tex = 0.75, choices = c(1,2)){
   heads <- coef(x)
   arrows(x0 = 0, y0 = 0, 
@@ -147,23 +143,24 @@ lda.arrows <- function(x, myscale = 1, arrow_heads = 0.1, color = "red", tex = 0
   text(myscale * heads[,choices], labels = row.names(heads), 
        cex = tex, col=color, pos=3)
 }
-# 
-# # target classes as numeric
-# classes <- as.numeric(train$crime)
-# 
-# # plot the lda results
-# plot(lda.fit, dimen = 2, col=classes, pch=classes)
-# lda.arrows(lda.fit, myscale = 1)
+
+# target classes as numeric
+classes <- as.numeric(train$crime)
+
+# plot the lda results
+plot(lda.fit, dimen = 2, col=classes, pch=classes)
+lda.arrows(lda.fit, myscale = 1)
 ```
 
 **Save the crime categories from the test set and then remove the categorical crime variable from the test dataset. Then predict the classes with the LDA model on the test data. Cross tabulate the results with the crime categories from the test set. Comment on the results. (0-3 points)**
 ```{r 'ch4-task6'}
-# # predict classes with test data
-# lda.pred <- predict(lda.fit, newdata = test)
-# 
-# # cross tabulate the results
-# table(correct = correct_classes, predicted = lda.pred$class)
+# predict classes with test data
+lda.pred <- predict(lda.fit, newdata = test)
+
+# cross tabulate the results
+table(correct = correct_classes, predicted = lda.pred$class)
 ```
+
 ## k-means Clustering
 **Reload the Boston dataset and standardize the dataset (we did not do this in the Datacamp exercises, but you should scale the variables to get comparable distances). Calculate the distances between the observations. Run k-means algorithm on the dataset. Investigate what is the optimal number of clusters and run the algorithm again. Visualize the clusters (for example with the pairs() or ggpairs() functions, where the clusters are separated with colors) and interpret the results. (0-4 points)**
 ```{r 'ch4-task7'}
@@ -229,15 +226,15 @@ summary(km)
 **Super-Bonus: Run the code below for the (scaled) train data that you used to fit the LDA. The code creates a matrix product, which is a projection of the data points.**
 ```{r 'ch4-super-bonus-provided'}
 # This script is provided in assignment #
-# model_predictors <- dplyr::select(train, -crime)
-# 
-# # check the dimensions
-# dim(model_predictors)
-# dim(lda.fit$scaling)
-# 
-# # matrix multiplication
-# matrix_product <- as.matrix(model_predictors) %*% lda.fit$scaling
-# matrix_product <- as.data.frame(matrix_product)
+model_predictors <- dplyr::select(train, -crime)
+
+# check the dimensions
+dim(model_predictors)
+dim(lda.fit$scaling)
+ 
+# matrix multiplication
+matrix_product <- as.matrix(model_predictors) %*% lda.fit$scaling
+matrix_product <- as.data.frame(matrix_product)
 
 # Next, install and access the plotly package. Create a 3D plot (Cool!) of the columns of the matrix product by typing the code below.
 # plot_ly(x = matrix_product$LD1, y = matrix_product$LD2, z = matrix_product$LD3, type= 'scatter3d', mode='markers')
