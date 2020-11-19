@@ -122,17 +122,14 @@ correct_classes_for_test <- test$crime
 
 # remove the crime variable from test data
 test <- dplyr::select(test, -crime)
-
 ```
 
 ## Linear Discriminant Analysis
-**Fit the linear discriminant analysis on the train set. Use the categorical crime rate as the target variable and all the other variables in the dataset as predictor variables. Draw the LDA (bi)plot. (0-3 points)**
-```{r 'ch4-task5'}
-# linear discriminant analysis
-lda.fit <- lda(crime ~ ., data = train)
 
-# print the lda.fit object
-lda.fit
+Now that our data is in a suitable format, let's get to business. Luckily, fitting the LDA is a one-liner. Here our target is `crime` and explanatory variables are everything else (denoted with `.`). Also, I shamelessly copied the biplot plotting code from Datacamp exercises (because programming it would be too difficult at this point). Let's see what happens.
+```{r 'ch4-task5'}
+lda.fit <- lda(crime ~ ., data = train)
+lda.fit  # Just checking the output
 
 # Function lifted directly from DataCamp exercises
 # the function for lda biplot arrows
@@ -153,39 +150,50 @@ plot(lda.fit, dimen = 2, col=classes, pch=classes)
 lda.arrows(lda.fit, myscale = 1)
 ```
 
-**Save the crime categories from the test set and then remove the categorical crime variable from the test dataset. Then predict the classes with the LDA model on the test data. Cross tabulate the results with the crime categories from the test set. Comment on the results. (0-3 points)**
+Okay, that's a colorful mess. Looking at the arrows, `rad` stands out quite nicely. Also printing the fit shows that it has the largest coefficients for linear discriminants LD1 and LD2. Other notable variables would be `zn` and `nox` with high-ish coefficients for LD2 and LD3. Also, the `crime==high` points all are nicely together in the right side of the picture, though some `med_high`s have ended up there, too.
+
+So, what about our model's predictions? Predict with test data and cross tabulate the predictions with the actual labels, got it!
 ```{r 'ch4-task6'}
 # predict classes with test data
 lda.pred <- predict(lda.fit, newdata = test)
-
-# cross tabulate the results
-table(correct = correct_classes_for_test, predicted = lda.pred$class)
+table(correct = correct_classes_for_test, predicted = lda.pred$class) %>% addmargins
 ```
+
+Well, looks like the model is successful in predicting the crime rate classes - up to a point. It is a good sign that the diagonal elements have the largest values, as these elements show the correct predictions! However, looking at the numbers in a more detail shows interesting things. The `high` looks quite easy to predict, model correctly predicted 19/20 rows with no false positives, missing one row. For other classes, model didn't perform as well. For `med_high` model had worst performance, predicting correctly only 12/22 with 8 false positives. However, `med_low` had more false positives even if the model also had more rows correctly (20/30 correct, 19 false positives -- that's almost 50% of the predictions in this class)! Finally, 18/30 rows of `low` class were predicted correctly, with "only" 6 false positives.
+
+| Predicted | Correct | Misses | False positives |
+|--         |--       |--      |--   |
+|low        | 18/30 (60%) | 12/30  | 6/24 (25%)   |
+|med_low    | 20/30 (67%) | 10/30  | 19/39 (49%) |
+|med_high   | 12/22 (55%) | 10/22  | 8/20 (40%)  |
+|high       | 19/20 (95%) |  1/20  | 0/19 (0%)|
 
 ## k-means Clustering
 **Reload the Boston dataset and standardize the dataset (we did not do this in the Datacamp exercises, but you should scale the variables to get comparable distances). Calculate the distances between the observations. Run k-means algorithm on the dataset. Investigate what is the optimal number of clusters and run the algorithm again. Visualize the clusters (for example with the pairs() or ggpairs() functions, where the clusters are separated with colors) and interpret the results. (0-4 points)**
-```{r 'ch4-task7'}
-# Set seed for reproducible results, k-means algorithm sets the initial
-# cluster center points randomly.
-set.seed(2020)
 
+Finally, we'll practice some clustering with the "clustering hello world algorithm", also known as k-means clustering. Basically this algorithm creates *k* clusters by finding *k* points that minimize the mean distance between the "k-points" and the data points (though it's not foolproof, the outcome depends on where the initial k-points are). Each data point is assigned to the nearest k-point, which forms the cluster.
+
+Moving on, now that short (and probably a bit unnecessary) introduction is out of the way, I'll reload the original `Boston` dataset and scale it once again for clustering.
+```{r 'ch4-task7-1'}
 # Reload original Boston dataset
 data('Boston')
 
 # Scale the dataset
 boston_scaled <- scale(Boston) %>% as.data.frame()
-summary(boston_scaled)
+# I won't repeat the summary here, it's the same as shown previously...
+
 # Calculate euclidean distance and show it
-dist_eu <- dist(Boston)
+dist_eu <- dist(boston_scaled)
 summary(dist_eu)
  
-# # manhattan distance matrix
-# dist_man <- dist(Boston, method="manhattan")
-# 
-# # look at the summary of the distances
-# summary(dist_man)
-# # 
+# Let's calculate also manhattan distance for good measure
+dist_man <- dist(boston_scaled, method="manhattan")
+summary(dist_man)
+```
 
+
+
+```{r 'ch4-task7-2'}
 # k-means clustering
 km <-kmeans(boston_scaled, centers = 3)
 # 
@@ -208,7 +216,7 @@ qplot(x = 1:k_max, y = twcss, geom = 'line')
 # # plot the Boston dataset with clusters
 pairs(boston_scaled, col = km$cluster)
 # 
-
+ggpairs(boston_scaled, aes(col=km$cluster))
 ```
 ## Bonus task
 **Bonus: Perform k-means on the original Boston data with some reasonable number of clusters (> 2). Remember to standardize the dataset. Then perform LDA using the clusters as target classes. Include all the variables in the Boston data in the LDA model. Visualize the results with a biplot (include arrows representing the relationships of the original variables to the LDA solution). Interpret the results. Which variables are the most influencial linear separators for the clusters? (0-2 points to compensate any loss of points from the above exercises)**
