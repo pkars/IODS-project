@@ -1,5 +1,5 @@
 # Clustering and classification
-
+A new week, a new section! This week is about clustering the data. As per usual, here are the libraries I'm using.
 ```{r 'ch4-setup', message=FALSE, echo=-1:-5}
 # knitr is used to build this report, so it is included by default
 
@@ -17,15 +17,7 @@ library(corrplot)
 ```
 
 ## Data description
-**Load the Boston data from the MASS package. Explore the structure and the dimensions of the data and describe the dataset briefly, assuming the reader has no previous knowledge of it. Details about the Boston dataset can be seen for example here. (0-1 points)**
-```{r 'ch4-task2'}
-# Task 2
-data("Boston")  # Creates variable named Boston
-str(Boston)
-knitr::kable(head(Boston, 5))
-```
-
-Table showing the data columns, lifted directly from R documentation (type `?Boston` in R console).
+Unlike previous weeks, this week we are using a dataset that we have not wrangled with before! The data is the `Boston` dataset that is available in R package called `MASS`. Below is a table that lists the columns in the dataset. Full disclosure, I lifted the descriptions directly from R documentation (accessible by typing `?Boston` in R console).
 
 | Column | Description |
 |-|-------|
@@ -40,17 +32,19 @@ Table showing the data columns, lifted directly from R documentation (type `?Bos
 |rad    | index of accessibility to radial highways.|
 |tax    | full-value property-tax rate per \$10,000.|
 |ptratio| pupil-teacher ratio by town.|
-|black  | 1000(*Bk* - 0.63)^2 where *Bk* is the proportion of blacks by town.|
+|black  | *1000(Bk - 0.63)^2* where *Bk* is the proportion of blacks by town.|
 |lstat  | lower status of the population (percent).|
 |medv   | median value of owner-occupied homes in \$1000s. |
 
-```{}
-Source
+The data is titled as *Housing Values in Suburbs of Boston*. The dataset contains 14 variables and 506 rows. All columns are numerical, although the variable `chas` is actually a boolean indicator represented as ones and zeros. Also as per usual, here are the outputs for `str` and `head` functions for the `Boston` dataset:
 
-Harrison, D. and Rubinfeld, D.L. (1978) Hedonic prices and the demand for clean air. J. Environ. Economics and Management 5, 81–102.
-
-Belsley D.A., Kuh, E. and Welsch, R.E. (1980) Regression Diagnostics. Identifying Influential Data and Sources of Collinearity. New York: Wiley. 
+```{r 'ch4-task2'}
+# Task 2
+data("Boston")  # Creates variable named Boston
+str(Boston)
+knitr::kable(head(Boston, 5))
 ```
+
 
 **Show a graphical overview of the data and show summaries of the variables in the data. Describe and interpret the outputs, commenting on the distributions of the variables and the relationships between them. (0-2 points)**
 ```{r 'ch4-task3'}
@@ -115,6 +109,7 @@ summary(boston_scaled)
 # 
 ```
 
+## Linear Discriminant Analysis
 **Fit the linear discriminant analysis on the train set. Use the categorical crime rate as the target variable and all the other variables in the dataset as predictor variables. Draw the LDA (bi)plot. (0-3 points)**
 ```{r 'ch4-task5'}
 # # linear discriminant analysis
@@ -150,7 +145,7 @@ lda.arrows <- function(x, myscale = 1, arrow_heads = 0.1, color = "red", tex = 0
 # # cross tabulate the results
 # table(correct = correct_classes, predicted = lda.pred$class)
 ```
-
+## k-means Clustering
 **Reload the Boston dataset and standardize the dataset (we did not do this in the Datacamp exercises, but you should scale the variables to get comparable distances). Calculate the distances between the observations. Run k-means algorithm on the dataset. Investigate what is the optimal number of clusters and run the algorithm again. Visualize the clusters (for example with the pairs() or ggpairs() functions, where the clusters are separated with colors) and interpret the results. (0-4 points)**
 ```{r 'ch4-task7'}
 # Reload original Boston dataset
@@ -199,7 +194,7 @@ boston_scaled <- scale(Boston)
 # 
 
 ```
-
+## Bonus task
 **Bonus: Perform k-means on the original Boston data with some reasonable number of clusters (> 2). Remember to standardize the dataset. Then perform LDA using the clusters as target classes. Include all the variables in the Boston data in the LDA model. Visualize the results with a biplot (include arrows representing the relationships of the original variables to the LDA solution). Interpret the results. Which variables are the most influencial linear separators for the clusters? (0-2 points to compensate any loss of points from the above exercises)**
 ```{r 'ch4-bonus'}
 # Reload original Boston dataset
@@ -210,6 +205,7 @@ boston_scaled <- scale(Boston)
 # km <-kmeans(Boston, centers = 3)
 ```
 
+## Super-Bonus Task
 **Super-Bonus: Run the code below for the (scaled) train data that you used to fit the LDA. The code creates a matrix product, which is a projection of the data points.**
 ```{r}
 
