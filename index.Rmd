@@ -40,4 +40,10 @@ output:
 ***
 
 <!-- Chapter 4 -->
+```{r 'ch4', child = "chapter4.Rmd"}
+```
+
+<a href="#top" class="return-link">Back to top.</a>
+
+***
 <!-- Chapter 5 -->
