@@ -32,3 +32,5 @@ gii <- gii %>% mutate(edu2Ratio = edu2F / edu2M) %>% mutate(labRatio = labF / la
 # Join datasets by country and save the dataframe
 human <- inner_join(hd, gii, by="Country")
 write.csv(human, "data/human.csv", row.names=FALSE)
+
+# Week 5 data wrangling starts here
