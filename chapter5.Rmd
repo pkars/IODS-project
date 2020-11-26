@@ -20,7 +20,7 @@ library(stringr)
 library(FactoMineR)  # Contains the "tea" dataset
 ```
 
-## Data overview (task 1)
+## Data overview
 This time we're having a wrangled dataset! See the creation script [here](https://github.com/pkars/IODS-project/blob/master/data/create_human.R). Original data is from Human Development Reports by United Nations Development Programme, see http://hdr.undp.org/en/content/human-development-index-hdi . Datasets used in the data wrangling were provided by IODS lecturers.
 
 Starting with the data overview, first is the classic table of columns and their meaning:
@@ -53,7 +53,7 @@ Looking at the median of education and labor ratios, they are under one, meaning
 
 ## Principal component analysis
 First, I'll perform principal component analysis (PCA) using the singular value decomposition, but without scaling the dataset.
-```{r warning=FALSE}
+```{r warning=F}
 pca_unscaled <- prcomp(dataset)
 pca_unscaled
 # Drawing the biplot for the first 2 PCA dimensions
@@ -81,27 +81,26 @@ data(tea)
 str(tea)
 summary(tea)
 
-tea_habits <- tea[ , 1:9]
-gather(tea_habits) %>% ggplot(aes(value)) + facet_wrap("key", scales = "free") + geom_bar() + theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 8))
 
+tea_no_age <- dplyr::select(tea, -age)
 
-tea_habits <- tea[ , 10:18]
-gather(tea_habits) %>% ggplot(aes(value)) + facet_wrap("key", scales = "free") + geom_bar() + theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 8))
+tea_no_age %>% dplyr::select(1:9) %>% pivot_longer(cols=everything(), names_to="key", values_to="value") %>% ggplot(aes(value)) + facet_wrap("key", scales = "free") + geom_bar() + theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 8))
 
+tea_no_age %>% dplyr::select(10:18) %>% pivot_longer(cols=everything(), names_to="key", values_to="value") %>% ggplot(aes(value)) + facet_wrap("key", scales = "free") + geom_bar() + theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 8))
 
-tea_habits <- tea[ , 19:27]
-gather(tea_habits) %>% ggplot(aes(value)) + facet_wrap("key", scales = "free") + geom_bar() + theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 8))
+tea_no_age %>% dplyr::select(19:27) %>% pivot_longer(cols=everything(), names_to="key", values_to="value") %>% ggplot(aes(value)) + facet_wrap("key", scales = "free") + geom_bar() + theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 8))
 
+tea_no_age %>% dplyr::select(28:35) %>% pivot_longer(cols=everything(), names_to="key", values_to="value") %>% ggplot(aes(value)) + facet_wrap("key", scales = "free") + geom_bar() + theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 8))
 
-tea_habits <- tea[ , 28:36]
-gather(tea_habits) %>% ggplot(aes(value)) + facet_wrap("key", scales = "free") + geom_bar() + theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 8))
+tea %>% ggplot(aes(age)) + geom_density()
+
 ```
 
 Looks to be an interesting dataset, though it's a bit difficult to properly visualise. Let's pick a few columns and perform MCA to them.
 
 ```{r}
 keep_cols <- c("age_Q", "sex", "frequency", "Tea", "price", "sugar", "How")
-data <- select(tea, any_of(keep_cols))
+data <- dplyr::select(tea, one_of(keep_cols))
 mca <- MCA(data, graph=FALSE)
 mca$eig
 mca$var$contrib
