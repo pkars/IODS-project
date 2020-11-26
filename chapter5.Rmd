@@ -1,0 +1,114 @@
+# Dimensionality reduction
+Another week, another go. This is gonna be a short one, got sidetracked with actual work this week...
+
+Starting with the setup for this week. New libraries: `stringr`, `FactoMiner`.
+```{r 'ch5-setup', message=FALSE, echo=-1:-5}
+# knitr is used to build this report, so it is included by default
+
+# Remove the '##' from each line of R output blocks
+knitr::opts_chunk$set(comment = '')
+
+# Used knitr options: No "##" before output
+library(dplyr)
+library(ggplot2)
+library(GGally)
+library(gridExtra)
+library(reshape2)
+library(tidyr)
+library(corrplot)
+library(stringr)
+library(FactoMineR)  # Contains the "tea" dataset
+```
+
+## Data overview (task 1)
+This time we're having a wrangled dataset! See the creation script [here](https://github.com/pkars/IODS-project/blob/master/data/create_human.R). Original data is from Human Development Reports by United Nations Development Programme, see http://hdr.undp.org/en/content/human-development-index-hdi . Datasets used in the data wrangling were provided by IODS lecturers.
+
+Starting with the data overview, first is the classic table of columns and their meaning:
+
+| Variable | Meaning | Type | Notes |
+|-|----|-|--|
+|`edu2.ratio`|Females-to-males ratio of people with secondary or higher education |num|`edu2.F / edu2.M`|
+|`lab.ratio`|Females-to-males ratio of people in the work force|num|`lab.F / lab.M`|
+|`exp.edu.years`  |Expected years in education|num||
+|`exp.life.years` |Life expectancy at birth|num||
+|`GNI`            |Gross National Income per capita|num||
+|`mat.mort.rate`  |Maternal mortality rate|int||
+|`adol.birth.rate`|Adolescent birth rate|num||
+|`parl.F.ratio`   |Ratio of females in the parliament|num||
+
+
+```{r}
+dataset <- read.csv("data/human.csv", header=TRUE, row.names=1)
+str(dataset)
+summary(dataset)
+knitr::kable(head(dataset, 5))
+```
+```{r message=FALSE}
+ggpairs(dataset)
+cor(dataset)%>% corrplot
+```
+
+Looking at the median of education and labor ratios, they are under one, meaning that more men than women are both educated and involved in the labor force. However, the education ratio median is close to one, but the 3rd quantile is also under one. Maternal mortality rate and adolescent birth rate are correlating with each other positively and negatively with life expectancy, education and GNI.
+
+
+## Principal component analysis
+First, I'll perform principal component analysis (PCA) using the singular value decomposition, but without scaling the dataset.
+```{r warning=FALSE}
+pca_unscaled <- prcomp(dataset)
+pca_unscaled
+# Drawing the biplot for the first 2 PCA dimensions
+biplot(pca_unscaled, choices = 1:2, cex=c(0.8,1), col=c("#66CC66", "#663399")) # purple color is "rebecca"
+```
+
+Yup, that's a mess. PCA expects that the variable values are of similar scales, so having a `GNI` column that is about 3-4 magnitudes larger than other variables causes this.
+
+```{r warning=FALSE}
+scaled <- scale(dataset)
+pca_scaled <- prcomp(scaled)
+pca_scaled
+# Drawing the biplot for the first 2 PCA dimensions
+biplot(pca_scaled, choices = 1:2, cex=c(0.8,1), col=c("#66CC66", "#663399")) # purple color is "rebecca"
+
+```
+
+Now this looks a bit better. Based on this analysis, country's healthcare (life expectancy, maternal mortality, adolescent pregnancies), education of women, and income levels are the most significant indicators in this particular dataset. The first dimension is women education and healthcare axis: more rich and educated countries have better healthcare than poor countries. Or that educated women have less pregnancies. The second dimension is about how much women are involved with the society - are they working or are they staying at home (for any reason)? Are women in positions of power?
+
+## Multiple Correspondence Analysis
+Wrapping up this week is multiple correspondence analysis (MCA).  For this analysis, we're using the `tea` dataset from FactoMineR library. It is a dataset of questionnaire answers regarding tea According to the documentation, the questionnaire asked 300 individuals about their tea-drinking habits (18 questions), their product's perception (12 questions) and personal details (4 questions). So, the data has 300 rows and 36 columns, with each individual on one row and each question in their own column.
+```{r warning=FALSE}
+# using `tea` dataset from FactoMineR library
+data(tea)
+str(tea)
+summary(tea)
+
+tea_habits <- tea[ , 1:9]
+gather(tea_habits) %>% ggplot(aes(value)) + facet_wrap("key", scales = "free") + geom_bar() + theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 8))
+
+
+tea_habits <- tea[ , 10:18]
+gather(tea_habits) %>% ggplot(aes(value)) + facet_wrap("key", scales = "free") + geom_bar() + theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 8))
+
+
+tea_habits <- tea[ , 19:27]
+gather(tea_habits) %>% ggplot(aes(value)) + facet_wrap("key", scales = "free") + geom_bar() + theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 8))
+
+
+tea_habits <- tea[ , 28:36]
+gather(tea_habits) %>% ggplot(aes(value)) + facet_wrap("key", scales = "free") + geom_bar() + theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 8))
+```
+
+Looks to be an interesting dataset, though it's a bit difficult to properly visualise. Let's pick a few columns and perform MCA to them.
+
+```{r}
+keep_cols <- c("age_Q", "sex", "frequency", "Tea", "price", "sugar", "How")
+data <- select(tea, any_of(keep_cols))
+mca <- MCA(data, graph=FALSE)
+mca$eig
+mca$var$contrib
+
+plot(mca, invisible=c("ind"), habillage="quali")
+```
+
+So I decided to go with person's age and gender, how often they drink tea, what kind of tea they drink, how expensive their tea is, and if they add something (sugar, milk) to their tea. So, putting those in and taking the model out, let's see... Okay, so my set of variables wasn't very good. The first two dimensions explain only 17.4% of the (cumulative) variance! So it is probably no wonder the biplot looks like a scatterplot where the dots are all over the place.
+
+This week's diary has been really short compared to other weeks... Well, such is life, there's so much to do and so little time.
