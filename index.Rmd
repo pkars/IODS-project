@@ -46,4 +46,13 @@ output:
 <a href="#top" class="return-link">Back to top.</a>
 
 ***
+
 <!-- Chapter 5 -->
+```{r 'ch5', child = "chapter5.Rmd"}
+```
+
+<a href="#top" class="return-link">Back to top.</a>
+
+***
+
+<!-- Chapter 6 -->
