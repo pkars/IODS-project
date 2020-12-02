@@ -25,13 +25,39 @@ head(rats, 5)
 # to the "time" dimension.
 
 # Convert categorical variables to factors
+bprs$treatment <- as.factor(bprs$treatment)
+bprs$subject <- as.factor(bprs$subject)
+rats$ID <- as.factor(rats$ID)
+rats$Group <- as.factor(rats$Group)
 
 # Convert to long form, add 'week' to BPRS data and 'Time' to RATS data
+bprs <- gather(bprs, key=weeks, value=bprs, -treatment, -subject) %>% 
+  mutate(week = as.integer(substr(weeks, 5, 5)))
+
+# Convert data to long form
+rats <- rats %>%
+  gather(key = WD, value = weight, -ID, -Group) %>%
+  mutate(time = as.integer(substr(WD, 3, 5))) 
 
 # Look at the long forms
+glimpse(bprs)
+head(bprs, 5)
+
+glimpse(rats)
+head(rats, 5)
 
 # Save the data here
-write.csv(bprs, "data/bprs.csv")
-write.csv(rats, "data/rats.csv")
+write.csv(bprs, "data/bprs.csv", row.names = FALSE)
+write.csv(rats, "data/rats.csv", row.names = FALSE)
 
 # Understanding the difference between wide and long table formats:
+# Long tables have all measurements in one column, while other columns are
+# the dimensions. Or coordinates of that measurement, if you will. So where
+# the wide tables had each individual on one row, here we have multiple rows
+# for each individual. Also in wide tables we had the time dimension aligned
+# with columns (in these specific datasets, that is), while in long tables 
+# the time information is contained in one column - as a coordinate.
+#
+# In essence: 
+#   wide table = measurement is represented as a list of variables
+#   long table = measurement is represented as key=value pairs
