@@ -56,3 +56,7 @@ output:
 ***
 
 <!-- Chapter 6 -->
+```{r 'ch6', child = "chapter6.Rmd"}
+```
+
+<a href="#top" class="return-link">Back to top.</a>
