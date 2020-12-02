@@ -416,14 +416,61 @@ summary {
 <div id="analysis-of-longitudinal-data" class="section level1">
 <h1>Analysis of longitudinal data</h1>
 <p>Hoo boy. It’s the last week of IODS course, and this time we’re analyzing data that includes non-independent measurements (e.g. repeated measurements of a test subject over time). Let’s start with the libraries and data exploration!</p>
-<p>This week’s assignment has a twist! We are going to do the exercises from Vehkalahti and Everitt (2019) book <em>Multivariate Analysis for The Behavioral Sciences</em>, chapters 8 and 9, except with the data sets swapped between the chapters. So first we have the <code>rats</code> data introduced in Ch. 9: <strong><em>[[TODO]]</em></strong></p>
-<blockquote>
-<p>To begin to see how linear mixed effects models are applied in practice, we shall use some data from a nutrition study conducted in three groups of rats (Crowder and Hand, 1990). The three groups were put on different diets, and each animal’s body weight (grams) was recorded repeatedly (approximately weekly, except in week seven when two recordings were taken) over a 9-week period. The question of most interest is whether the growth profiles of the three groups differ. The data are shown in Table 9.1.</p>
-</blockquote>
-<p>Next, we have the <code>bprs</code>data introduced in Ch. 8: <strong><em>[[TODO]]</em></strong></p>
-<blockquote>
-<p>Table 8.1 taken from Davis (2002). Here 40 male subjects were randomly assigned to one of two treatment groups and each subject was rated on the brief psychiatric rating scale (BPRS) measured before treatment be- gan (week 0) and then at weekly intervals for eight weeks. The BPRS assesses the level of 18 symptom constructs such as hostility, suspiciousness, halluci- nations and grandiosity; each of these is rated from one (not present) to seven (extremely severe). The scale is used to evaluate patients suspected of having schizophrenia.</p>
-</blockquote>
+<pre class="r"><code># Setup block
+# Remove the &#39;##&#39; from each line of R output blocks
+knitr::opts_chunk$set(comment = &#39;&#39;)
+
+# Libraries
+library(dplyr)</code></pre>
+<p>This week’s assignment has a twist! We are going to do the exercises from Vehkalahti and Everitt (2019) book <em>Multivariate Analysis for The Behavioral Sciences</em>, chapters 8 and 9, except with the data sets swapped between the chapters. I’ve wrangled the data to a “long table” format in the corresponding wrangling exercise. You can find the code <a href="https://github.com/pkars/IODS-project/blob/master/data/meet_and_repeat.R">here</a>.</p>
+<p>So first we have the <code>rats</code> data introduced in Ch. 9. The authors describe the data as following:</p>
+<p><em>[W]e shall use some data from a nutrition study conducted in three groups of rats (Crowder and Hand, 1990). The three groups were put on different diets, and each animal’s body weight (grams) was recorded repeatedly (approximately weekly, except in week seven when two recordings were taken) over a 9-week period. The question of most interest is whether the growth profiles of the three groups differ.</em></p>
+<pre class="r"><code>rats &lt;- read.csv(&quot;data/rats.csv&quot;)
+rats$ID &lt;- as.factor(rats$ID)
+rats$Group &lt;- as.factor(rats$Group)
+str(rats)</code></pre>
+<pre><code>&#39;data.frame&#39;:   176 obs. of  5 variables:
+ $ ID    : Factor w/ 16 levels &quot;1&quot;,&quot;2&quot;,&quot;3&quot;,&quot;4&quot;,..: 1 2 3 4 5 6 7 8 9 10 ...
+ $ Group : Factor w/ 3 levels &quot;1&quot;,&quot;2&quot;,&quot;3&quot;: 1 1 1 1 1 1 1 1 2 2 ...
+ $ WD    : chr  &quot;WD1&quot; &quot;WD1&quot; &quot;WD1&quot; &quot;WD1&quot; ...
+ $ weight: int  240 225 245 260 255 260 275 245 410 405 ...
+ $ time  : int  1 1 1 1 1 1 1 1 1 1 ...</code></pre>
+<pre class="r"><code>summary(rats)</code></pre>
+<pre><code>       ID      Group       WD                weight           time      
+ 1      : 11   1:88   Length:176         Min.   :225.0   Min.   : 1.00  
+ 2      : 11   2:44   Class :character   1st Qu.:267.0   1st Qu.:15.00  
+ 3      : 11   3:44   Mode  :character   Median :344.5   Median :36.00  
+ 4      : 11                             Mean   :384.5   Mean   :33.55  
+ 5      : 11                             3rd Qu.:511.2   3rd Qu.:50.00  
+ 6      : 11                             Max.   :628.0   Max.   :64.00  
+ (Other):110                                                            </code></pre>
+<p>Next, we have the <code>bprs</code>data introduced in Ch. 8. The authors’ description follows:</p>
+<p><em>Table 8.1 taken from Davis (2002). Here 40 male subjects were randomly assigned to one of two treatment groups and each subject was rated on the brief psychiatric rating scale (BPRS) measured before treatment began (week 0) and then at weekly intervals for eight weeks. The BPRS assesses the level of 18 symptom constructs such as hostility, suspiciousness, hallucinations and grandiosity; each of these is rated from one (not present) to seven (extremely severe). The scale is used to evaluate patients suspected of having schizophrenia.</em></p>
+<pre class="r"><code>bprs &lt;- read.csv(&quot;data/bprs.csv&quot;)
+bprs$treatment &lt;- as.factor(bprs$treatment)
+bprs$subject &lt;- as.factor(bprs$subject)
+str(bprs)</code></pre>
+<pre><code>&#39;data.frame&#39;:   360 obs. of  5 variables:
+ $ treatment: Factor w/ 2 levels &quot;1&quot;,&quot;2&quot;: 1 1 1 1 1 1 1 1 1 1 ...
+ $ subject  : Factor w/ 20 levels &quot;1&quot;,&quot;2&quot;,&quot;3&quot;,&quot;4&quot;,..: 1 2 3 4 5 6 7 8 9 10 ...
+ $ weeks    : chr  &quot;week0&quot; &quot;week0&quot; &quot;week0&quot; &quot;week0&quot; ...
+ $ bprs     : int  42 58 54 55 72 48 71 30 41 57 ...
+ $ week     : int  0 0 0 0 0 0 0 0 0 0 ...</code></pre>
+<pre class="r"><code>summary(bprs)</code></pre>
+<pre><code> treatment    subject       weeks                bprs            week  
+ 1:180     1      : 18   Length:360         Min.   :18.00   Min.   :0  
+ 2:180     2      : 18   Class :character   1st Qu.:27.00   1st Qu.:2  
+           3      : 18   Mode  :character   Median :35.00   Median :4  
+           4      : 18                      Mean   :37.66   Mean   :4  
+           5      : 18                      3rd Qu.:43.00   3rd Qu.:6  
+           6      : 18                      Max.   :95.00   Max.   :8  
+           (Other):252                                                 </code></pre>
+<div id="working-with-rats-data" class="section level2">
+<h2>Working with RATS data</h2>
+</div>
+<div id="working-with-bprs-data" class="section level2">
+<h2>Working with BPRS data</h2>
+</div>
 </div>
 
 
