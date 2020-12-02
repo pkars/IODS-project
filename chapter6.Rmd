@@ -1,0 +1,16 @@
+# Analysis of longitudinal data
+Hoo boy. It's the last week of IODS course, and this time we're analyzing data
+that includes non-independent measurements (e.g. repeated measurements of
+a test subject over time). Let's start with the libraries and data exploration!
+```{r ch6-setup}
+```
+
+This week's assignment has a twist! We are going to do the exercises from 
+Vehkalahti and Everitt (2019) book *Multivariate Analysis for The Behavioral Sciences*, 
+chapters 8 and 9, except with the data sets swapped between the chapters. So first
+we have the `rats` data introduced in Ch. 9: ***[[TODO]]***
+
+```{r c6-data}
+```
+
+Next, we have the `bprs`data introduced in Ch. 8: ***[[TODO]]***
