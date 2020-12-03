@@ -10,6 +10,8 @@ knitr::opts_chunk$set(comment = '')
 # Libraries
 library(dplyr)
 library(ggplot2)
+library(stringr)
+library(lme4)
 ```
 
 This week's assignment has a twist! We are going to repeat the examples from 
@@ -79,23 +81,23 @@ Mean response profiles (Fig. 8.3)
 n <- rats$time %>% unique() %>% length()
 
 # Summary data with mean and standard error of bprs by treatment and week 
-BPRSS <- rats %>%
-  group_by(treatment, week) %>%
-  summarise( mean = mean(bprs), se = sd(bprs)/sqrt(n) ) %>%
+ratss <- rats %>%
+  group_by(Group, time) %>%
+  summarise( mean = mean(weight), se = sd(weight)/sqrt(n) ) %>%
   ungroup()
 
 # Glimpse the data
-glimpse(BPRSS)
+glimpse(ratss)
 
 # Plot the mean profiles
-ggplot(BPRSS, aes(x = week, y = mean, linetype = treatment, shape = treatment)) +
+ggplot(ratss, aes(x = time, y = mean, linetype = Group, shape = Group)) +
   geom_line() +
-  scale_linetype_manual(values = c(1,2)) +
+  scale_linetype_manual(values = c(1,2,3)) +
   geom_point(size=3) +
-  scale_shape_manual(values = c(1,2)) +
+  scale_shape_manual(values = c(1,2,3)) +
   geom_errorbar(aes(ymin=mean-se, ymax=mean+se, linetype="1"), width=0.3) +
-  theme(legend.position = c(0.8,0.8)) +
-  scale_y_continuous(name = "mean(bprs) +/- se(bprs)")
+  theme(legend.position = c(0.8,0.5)) +
+  scale_y_continuous(name = "mean(weight) +/- se(weight)")
 ```
 
 Boxplots for rats data (Fig. 8.4)
@@ -160,28 +162,104 @@ anova(fit)
 (Results - Independent Samples t-test for Mean Summary Measure for data with missing values, table 8.6, - omitted as it uses data not seen here)
 
 ## Working with BPRS data
+Week vs BPRS with group numbers (Fig. 9.1)
+```{r}
+ggplot(bprs, aes(x=week, y=bprs, color=treatment)) +
+  #geom_point(aes(shape=treatment, color=treatment)) +
+  geom_text(aes(label=treatment), show.legend=FALSE)
+```
 
+Results from fitting linear reg.model ignoring the repeated-measures structure of the data (Table 9.3)
+```{r}
+# create a regression model RATS_reg
+bprs_reg <- lm(bprs ~ week + treatment, data = bprs)
+# print out a summary of the model
+summary(bprs_reg)
+```
+
+Individual BTRS profiles (Fig. 9.2)
+```{r}
+# Check the dimensions of the data
+dim(bprs)
+
+#bprs$key <- str.concatenate(as.character(bprs$treatment))
+#str(bprs)
+
+# Plot the RATSL data
+ggplot(bprs, aes(x = week, y = bprs)) +
+  geom_line(aes(linetype=treatment)) +
+  scale_x_continuous(name = "Weight (grams)") +
+  theme(legend.position = "top")
+```
+
+Scatterplot matrix of repeated measures (Fig. 9.3)
 ```{r}
 ```
 
-```{r}
+Results from fitting random intercept model (Table 9.4)
+```{r eval=F}
+# Create a random intercept model
+RATS_ref <- lmer(Weight ~ Time + Group + (1 | ID), data = RATSL, REML = FALSE)
+
+# Print the summary of the model
+summary(RATS_ref)
+
 ```
 
-```{r}
+Results from fitting random intercept and slope model (Table 9.5)
+```{r eval=F}
+# dplyr, tidyr, lme4, ggplot2, RATS and RATSL are available
+
+# create a random intercept and random slope model
+RATS_ref1 <- lmer(Weight ~ Time + Group + (Time | ID), data = RATSL, REML = FALSE)
+
+# print a summary of the model
+summary(RATS_ref1)
+
+# perform an ANOVA test on the two models
+anova(RATS_ref1, RATS_ref)
+
 ```
 
-```{r}
+Results from Fitting the Random Intercept and Slope Model that Allows for a Group×Time Interaction to Rat Growth Data (Table 9.6)
+```{r eval=F}
+# dplyr, tidyr, lme4, ggplot2, RATS and RATSL are available
+
+# create a random intercept and random slope model with the interaction
+RATS_ref2 <- lmer(Weight ~ Time + Group + Time * Group + (Time | ID), data = RATSL, REML = FALSE)
+
+# print a summary of the model
+summary(RATS_ref2)
+
+# perform an ANOVA test on the two models
+anova(RATS_ref2, RATS_ref1)
+
+# draw the plot of RATSL with the observed Weight values
+ggplot(RATSL, aes(x = Time, y = Weight, group = ID)) +
+  geom_line(aes(linetype = Group)) +
+  scale_x_continuous(name = "Time (days)", breaks = seq(0, 60, 20)) +
+  scale_y_continuous(name = "Observed weight (grams)") +
+  theme(legend.position = "top")
+
+# Create a vector of the fitted values
+Fitted <- fitted(RATS_ref2, RATSL)
+
+# Create a new column fitted to RATSL
+RATSL$Fitted <- Fitted
+
+# draw the plot of RATSL with the Fitted values of weight
+ggplot(RATSL, aes(x = Time, y = Fitted, group = ID)) +
+  geom_line(aes(linetype = Group)) +
+  scale_x_continuous(name = "Time (days)", breaks = seq(0, 60, 20)) +
+  scale_y_continuous(name = "Fitted weight (grams)") +
+  theme(legend.position = "top")
+
 ```
 
-```{r}
+Fitted and observed growth profiles (Figure 9.4)
+```{r eval=F}
+
 ```
 
-```{r}
-```
 
-```{r}
-```
-
-```{r}
-```
 
