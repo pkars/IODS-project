@@ -10,8 +10,10 @@ knitr::opts_chunk$set(comment = '')
 # Libraries
 library(dplyr)
 library(ggplot2)
+library(gridExtra)
 library(stringr)
 library(lme4)
+library(reshape2)
 ```
 
 This week's assignment has a twist! We are going to repeat the examples from 
@@ -98,6 +100,12 @@ ggplot(rats_tracked, aes(x = time, y = std.weight, linetype= ID)) +
 ```
 
 ### Mean response profiles (Fig. 8.3)
+This is a way of visualising the overall development of the group and estimate
+the typical range of values for a given group and time. Also I noticed that in the 
+course's discussion page there was some talk about the standard error calculation.
+Namely that the denominator `sqrt(n)` was incorrectly presented in the Datacamp
+tutorials (`n` was the number of unique time instants there). So I opted to change the value
+to the number of members (rows) in a certain group at a certain time.
 ```{r}
 ratss <- rats %>%
   group_by(Group, time) %>%
@@ -119,12 +127,19 @@ ggplot(ratss, aes(x = time, y = mean, linetype = Group, shape="1", color=Group))
 ```
 
 ### Boxplots for rats data (Fig. 8.4)
+Next up is a boxplot. I think it shows about the same thing as the previous figure,
+but emphasis is on the quantiles (inter-quantile range etc.) instead of standard error.
+Of course, if the distributions are skewed, then the mean and median values differ:
+in the Group 2 the outlier rat has quite a pull to the mean value.
 ```{r}
 ggplot(rats, aes(x=as.factor(time), y=weight, color=Group)) +
   geom_boxplot()
 ```
 
 ### Boxplots of mean summary measures for the three rat groups (Fig. 8.5)
+
+This plot should tell me a quick overview about the differences between the groups.
+And if there are any outliers.
 ```{r}
 # Create a summary data by treatment and subject with mean as the summary variable (ignoring baseline day 1).
 rats_sm <- rats %>%
@@ -161,6 +176,8 @@ ggplot(rats_sm1, aes(x = Group, y = mean)) +
 ### *t*-test for Mean Summary Measure (table 8.3)
 *t*-test is a paired test, so there can be only two variables. Luckily three 
 groups equate to three pairs, so I can do the t-test for each pair with minimal effort (copypaste).
+Based on the results it is very clear that the Group 1 differs from Groups 2 and 3.
+Between the groups 2 and 3 the difference is not as clear, but it's there.
 ```{r}
 rats_sm1_noG3 <- rats_sm1 %>% filter(Group != 3)
 t.test(mean ~ Group, data = rats_sm1_noG3, var.equal = TRUE)
@@ -173,6 +190,7 @@ t.test(mean ~ Group, data = rats_sm1_noG1, var.equal = TRUE)
 ```
 
 ### Analysis of Covariance (ANOVA) (table 8.4)
+
 For the ANOVA I need a baseline for each row -- and that is easy to pick up from
 the original data. This works because the `rats_sm` contains only one row for each
 rat -- it is a summary of all measurements -- and the original data has one row
@@ -188,6 +206,10 @@ fit <- lm(mean ~ baseline + Group, data = rats_sm2)
 anova(fit)
 ```
 
+So the interpretation for this set. Baseline (=starting weight) is significant 
+contributor to the later weight. Belonging to a certain group has some significance,
+probably whether the rat belongs to the Group 1 or not.
+
 Lastly, I'm omitting the Table 8.6. It doesn't use the BPRS data in the original,
 so strictly speaking cannot swap that data to RATS dataset. It also demonstrates
 how to deal with missing data, so performing the analysis with a full dataset
@@ -202,6 +224,7 @@ the figures. Mainly because the data is different so I might need to adjust
 the visuals a bit to increase readability.
 
 ### Week vs BPRS with group numbers (Fig. 9.1)
+
 Here the two groups overlap more than the rats, and we have more individuals here as well!
 
 ```{r}
@@ -210,6 +233,11 @@ ggplot(bprs, aes(x=week, y=bprs, color=treatment)) +
 ```
 
 ### Results from fitting linear reg.model ignoring the repeated-measures structure of the data (Table 9.3)
+
+These results should be total nonsense. Spoilers: they are. The results "show" that
+the time dimension has a really strong effect on the measures. Well yeah, about that
+independence... The linear regression is assuming independent measures, i.e. 
+no autocorrelation or codependency. Shame it is totally untrue when one measures the same subject(s) over time...
 ```{r}
 # create a regression model RATS_reg
 bprs_reg <- lm(bprs ~ week + treatment, data = bprs)
@@ -217,10 +245,10 @@ bprs_reg <- lm(bprs ~ week + treatment, data = bprs)
 summary(bprs_reg)
 ```
 
-I'm going to cheat a bit here and plot an extra figure or two. Because I want to
+Don't tell anyone, but I'm going to cheat a bit here and plot an extra figure or two. Because I want to
 see how this faulty analysis looks like!
 
-```{r}
+```{r message=F}
 fit <- fitted(bprs_reg, bprs)
 
 ggplot(bprs, aes(x=week, y=bprs)) +
@@ -240,6 +268,7 @@ for analysing trends you'd want to consider the "repeated measures" nature of th
 data anyways[^4].
 
 ### Individual BTRS profiles (Fig. 9.2)
+
 Here's where the custom `ID` column comes in handy. I need to be able to differentiate
 between the subjects with the same `subject` value but different `treatment` value.
 Otherwise this plot would become confused, poor thing.
@@ -247,7 +276,6 @@ Otherwise this plot would become confused, poor thing.
 # Check that the ID column is included
 str(bprs)
 
-# Plot the RATSL data
 ggplot(bprs, aes(x = week, y = bprs, group=ID)) +
   geom_line(aes(linetype=treatment)) +
   scale_y_continuous(name = "Weight (grams)") +
@@ -255,7 +283,9 @@ ggplot(bprs, aes(x = week, y = bprs, group=ID)) +
 ```
 
 ### Scatterplot matrix of repeated measures (Fig. 9.3)
+
 This thing requires the original data. Maybe I could pivot the data... Yep, that works.
+Yes, the scatters form rather nice lines, especially between two consecutive weeks.
 ```{r}
 bprs_w <- tidyr::pivot_wider(bprs, names_from=weeks, values_from=bprs, 
                              id_cols=c("treatment", "subject", "ID")) %>% 
@@ -265,7 +295,12 @@ str(bprs_w)
 plot(bprs_w[-1:-3])
 ```
 
+
+
 ### Results from fitting random intercept model (Table 9.4)
+
+But now we will loosen the requirement of totally independent measures. First the
+random intercept allows the fit differ between the individuals.
 ```{r}
 # Create a random intercept model
 bprs_ref <- lmer(bprs ~ week + treatment + (1 | subject), data = bprs, REML = FALSE)
@@ -275,7 +310,13 @@ summary(bprs_ref)
 
 ```
 
+Okay, so now the `week` has no strong effect anymore. 
+
 ### Results from fitting random intercept and slope model (Table 9.5)
+
+Next, let's introduce the random *slope* to the model. And the winning numbers are...
+Huh? Not much of a change.
+
 ```{r}
 # create a random intercept and random slope model
 bprs_ref1 <- lmer(bprs ~ week + treatment + (week | subject), data = bprs, REML = FALSE)
@@ -288,62 +329,117 @@ anova(bprs_ref1, bprs_ref)
 
 ```
 
-So, as there are duplicate values in `subject` column, I'm not so sure if that
+
+So, knowing there are duplicate values in `subject` column, I'm not so sure if that
 fitting did what we wanted to do here. Let's do this again using `ID` instead of `subject`.
 ```{r}
 # Create a random intercept model
 bprs_ref_id <- lmer(bprs ~ week + treatment + (1 | ID), data = bprs, REML = FALSE)
 
 # Print the summary of the model
-summary(bprs_ref)
+summary(bprs_ref_id)
 
 # create a random intercept and random slope model
 bprs_ref_id1 <- lmer(bprs ~ week + treatment + (week | ID), data = bprs, REML = FALSE)
 
 # print a summary of the model
 summary(bprs_ref_id1)
+```
 
+
+```{r}
 # perform an ANOVA test on the two models
 anova(bprs_ref_id1, bprs_ref_id)
 ```
 
-### Results from Fitting the Random Intercept and Slope Model that Allows for a Group×Time Interaction to Rat Growth Data (Table 9.6)
+Well look at that! Using `ID` instead of `subject` made quite a difference! While the 
+previous ANOVA result had "only" one star of significance for the random intercept and slope
+model, this one here has *three* stars!
+
+... I have no idea what's going on here. The baseline got really important?
+Or that I cut the sample size down by telling the model "hey there are 40 dudes
+instead of 20"? I mean, the sample size for each individual fit, that is. Let me 
+ask a question...
+
+```{r}
+# perform an ANOVA test on the two models
+anova(bprs_ref_id1, bprs_ref1)
+```
+
+Yeah, I'm not sure what I expected. There's not much of a difference whether you
+use `subject` or `ID`? Probably my dataset is too small to make a difference.
+
+### Fitting the random intercept and slope model with Subject×Week interaction (Table 9.6)
+
+Then there is a third way of building a model: we allow an interaction between the
+two variables. Notice the `*` (star) instead of `+` (plus) symbol in the model
+definition!
 ```{r}
 # create a random intercept and random slope model with the interaction
-bprs_ref2 <- lmer(bprs ~ week * treatment + (week | ID), data = bprs, REML = FALSE)
+bprs_ref2 <- lmer(bprs ~ week * treatment + (week | subject), data = bprs, REML = FALSE)
 
 # print a summary of the model
 summary(bprs_ref2)
 
 # perform an ANOVA test on the two models
 anova(bprs_ref2, bprs_ref1)
-
-
 ```
+
+So looks like that change might bring a little bit more prediction power to the 
+model. Or at least the models' difference has a bit of significance. Let's do the
+same with `ID` this time.
+
+```{r}
+# create a random intercept and random slope model with the interaction
+bprs_ref_id2 <- lmer(bprs ~ week * treatment + (week | ID), data = bprs, REML = FALSE)
+
+# print a summary of the model
+summary(bprs_ref_id2)
+
+# perform an ANOVA test on the two models
+anova(bprs_ref_id2, bprs_ref_id1)
+```
+
+Well. Maybe the model overfits here and thus I don't have enough variance that could
+vary between the two models? Let's see how the `subject` versus `ID` question
+works out.
+
+```{r}
+anova(bprs_ref_id2, bprs_ref2)
+```
+
+Zero degrees of freedom. Yeah, that's a dead end.
 
 ### Fitted and observed growth profiles (Figure 9.4)
+
+Finally, there was a plot side-by-side showing original and fitted lines. Well,
+here you go dear reader! As the authors of MABS said, the regression lines fit
+quite nicely to the original data. Granted, the BPRS measures had more variance
+than the rats, but overall the figures are in agreement. Notably, the rats' weight
+was more or less monotonically increasing, while BPRS goes up-and-down (the main
+trend is downwards for most of the individuals, though).
 ```{r}
-# draw the plot of RATSL with the observed Weight values
-ggplot(bprs, aes(x = week, y = bprs, group = ID)) +
-  geom_line(aes(linetype = treatment)) +
-  #scale_x_continuous(name = "Time (days)", breaks = seq(0, 60, 20)) +
-  #scale_y_continuous(name = "Observed weight (grams)") +
-  theme(legend.position = "top")
-
 # Create a vector of the fitted values
-Fitted <- fitted(bprs_ref2, bprs)
-
-# Create a new column fitted to RATSL
+# Making a copy so I won't accidentally use this data somewhere else :)
 bprs2 <- bprs
-bprs2$Fitted <- Fitted
+bprs2$Fitted <- fitted(bprs_ref2, bprs)
+# Rename original "bprs" column for visualisation purposes
+colnames(bprs2)[4] <- "Original"
 
-# draw the plot of RATSL with the Fitted values of weight
-ggplot(bprs2, aes(x = week, y = Fitted, group = ID)) +
-  geom_line(aes(linetype = treatment)) +
-  #scale_x_continuous(name = "Time (days)", breaks = seq(0, 60, 20)) +
-  #scale_y_continuous(name = "Fitted weight (grams)") +
-  theme(legend.position = "top")
+# Melting data to "melted" (which is probably grammatically incorrect form of 'melt')
+melted <- melt(bprs2, 
+               id.vars=c("treatment","subject","ID", "week"), 
+               measure.vars=c("Original", "Fitted"),
+               variable.name = "key",
+               value.name = "BPRS")
+
+ggplot(melted, aes(x=week, y=BPRS, group=ID)) +
+  geom_line(aes(linetype=treatment)) +
+  facet_wrap(vars(key)) +
+  theme(legend.position="top") +
+  xlab("Week")
 ```
+
 
 
 [^4]: I'm having trouble imagining what sort of measures would be time series
