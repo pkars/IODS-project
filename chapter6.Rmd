@@ -31,6 +31,8 @@ rats$Group <- as.factor(rats$Group)
 str(rats)
 summary(rats)
 ```
+There are 16 rats in total, 8 in group 1, 4 in group 2 and 4 in group 3. Each rat has an
+unique ID. `time` column is the measurement day.
 
 Next, we have the `bprs`data introduced in Ch. 8. The authors' description follows:
 
@@ -38,15 +40,31 @@ Next, we have the `bprs`data introduced in Ch. 8. The authors' description follo
 
 ```{r c6-data-bprs}
 bprs <- read.csv("data/bprs.csv")
+# Create ID column before factor conversion
+# treatment "1" and subject "1" -> 101
+# treatment "2" and subject "20" -> 220
+bprs$ID <- as.factor(bprs$treatment * 100 + bprs$subject)
+# Categorical integers to categories...
 bprs$treatment <- as.factor(bprs$treatment)
 bprs$subject <- as.factor(bprs$subject)
 str(bprs)
 summary(bprs)
+
+# Check that there are 40 unique ID values
+unique(bprs$ID)
 ```
+So, that's 40 subjects divided evenly into two groups. This time however, the subject
+IDs are not unique within the data. They are unique within the group, though. That
+will cause me some issues later on, ~~because I suck at R~~ so I've created unique
+ID column here. In hindsight, this should've been done at the data wrangling stage, 
+though I don't recall it being in the instructions.
 
 ## Working with RATS data
-First plot the rats weight values (Fig. 8.1)
 
+**Plot of the rats' weights (Fig. 8.1).** 
+So here is a graphical overview of the time series of rats' weight development. 
+Group 1 seems to consist of smaller rats than the other two groups. 
+Also there is one huge rat in group 2, which will skew the mean value for that group.
 ```{r}
 ggplot(rats, aes(x = time, y = weight, linetype= ID)) +
   geom_line() +
@@ -57,8 +75,13 @@ ggplot(rats, aes(x = time, y = weight, linetype= ID)) +
 
 ```
 
-Standardize (Fig 8.2)
-
+**Standardized weights (Fig 8.2)**
+Next up is "tracking", i.e. plotting the time series of standardized weights. That'll
+show how a rat gains weight compared to the others. This feels like anomaly detection
+in atmospheric dynamics, or de-trending. Though those things are a bit different
+-- or at least the questions they try to answer are different. I think. Anyways,
+now the lines are not always increasing, so the relative development is easier
+to see.
 ```{r}
 rats_tracked <- rats %>% 
   group_by(time) %>%
@@ -74,45 +97,40 @@ ggplot(rats_tracked, aes(x = time, y = std.weight, linetype= ID)) +
 
 ```
 
-Mean response profiles (Fig. 8.3)
-```{r eval=F}
-# Number of weeks, baseline (week 0) included
-#n <- BPRSL$week %>% unique() %>% length()
-n <- rats$time %>% unique() %>% length()
-
-# Summary data with mean and standard error of bprs by treatment and week 
+**Mean response profiles (Fig. 8.3)**
+```{r}
 ratss <- rats %>%
   group_by(Group, time) %>%
-  summarise( mean = mean(weight), se = sd(weight)/sqrt(n) ) %>%
+  summarise( mean = mean(weight), se = sd(weight)/sqrt(n()), .groups="keep") %>%
   ungroup()
 
 # Glimpse the data
 glimpse(ratss)
 
 # Plot the mean profiles
-ggplot(ratss, aes(x = time, y = mean, linetype = Group, shape = Group)) +
+ggplot(ratss, aes(x = time, y = mean, linetype = Group, shape="1", color=Group)) +
   geom_line() +
   scale_linetype_manual(values = c(1,2,3)) +
-  geom_point(size=3) +
+  geom_point(size=3, show.legend = F) +
   scale_shape_manual(values = c(1,2,3)) +
   geom_errorbar(aes(ymin=mean-se, ymax=mean+se, linetype="1"), width=0.3) +
   theme(legend.position = c(0.8,0.5)) +
   scale_y_continuous(name = "mean(weight) +/- se(weight)")
 ```
 
-Boxplots for rats data (Fig. 8.4)
+**Boxplots for rats data (Fig. 8.4)**
 ```{r}
 ggplot(rats, aes(x=as.factor(time), y=weight, color=Group)) +
   geom_boxplot()
 ```
 
-Boxplots of mean summary measures for the three rat groups (Fig. 8.5), outliers (if any) removed (Fig. 8.6)
+**Boxplots of mean summary measures for the three rat groups (Fig. 8.5)**
 ```{r}
 # Create a summary data by treatment and subject with mean as the summary variable (ignoring baseline day 1).
 rats_sm <- rats %>%
   filter(time > 1) %>%
   group_by(Group, ID) %>%
-  summarise( mean=mean(weight) ) %>%
+  summarise( mean=mean(weight), .groups="keep" ) %>%
   ungroup()
 
 # Glimpse the data
@@ -121,10 +139,14 @@ glimpse(rats_sm)
 # Draw a boxplot of the mean versus treatment
 ggplot(rats_sm, aes(x = Group, y = mean)) +
   geom_boxplot() +
-  stat_summary(fun.y = "mean", geom = "point", shape=23, size=4, fill = "white") +
+  stat_summary(fun = "mean", geom = "point", shape=23, size=4, fill = "white") +
   scale_y_continuous(name = "mean(weight), time > 1")
 ```
-Group 2 has an outlier. Remove it.
+
+**Same as above but with outliers (if any) removed (Fig. 8.6)**
+Okay so, group 2 has an outlier. Remove it. Though I'm removing 1 rat from a total 4 rats,
+meaning that the statistics start to be *quite* dubious... `n=3` doesn't sound like
+a large enough of a sample.
 ```{r}
 # Create a new data by filtering the outlier and adjust the ggplot code the draw the plot again with the new data
 rats_sm1 <-  rats_sm %>% filter(mean < 575)
@@ -132,11 +154,13 @@ glimpse(rats_sm1)
 
 ggplot(rats_sm1, aes(x = Group, y = mean)) +
   geom_boxplot() +
-  stat_summary(fun.y = "mean", geom = "point", shape=23, size=4, fill = "white") +
+  stat_summary(fun = "mean", geom = "point", shape=23, size=4, fill = "white") +
   scale_y_continuous(name = "mean(weight), time > 1")
 ```
 
-t-test Mean Summary Measure (table 8.3)
+**t-test for Mean Summary Measure (table 8.3)**
+That test is a paired test, so there can be only two variables. Luckily three 
+groups equate to three pairs, so I can do the t-test for each pair with minimal effort (copypaste).
 ```{r}
 rats_sm1_noG3 <- rats_sm1 %>% filter(Group != 3)
 t.test(mean ~ Group, data = rats_sm1_noG3, var.equal = TRUE)
@@ -148,7 +172,12 @@ rats_sm1_noG1 <- rats_sm1 %>% filter(Group != 1)
 t.test(mean ~ Group, data = rats_sm1_noG1, var.equal = TRUE)
 ```
 
-Analysis of Covariance (ANOVA) (table 8.4)
+**Analysis of Covariance (ANOVA) (table 8.4)**
+For the ANOVA I need a baseline for each row -- and that is easy to pick up from
+the original data. This works because the `rats_sm` contains only one row for each
+rat -- it is a summary of all measurements -- and the original data has one row
+for each rat, too. If it weren't for the summarized data, I'd have to join by
+ID columns. Although that would be clearer than this, but (probably) slower...
 ```{r}
 original_rats <- read.csv("https://raw.githubusercontent.com/KimmoVehkalahti/MABS/master/Examples/data/rats.txt",
                           header=TRUE, sep="\t")
@@ -159,17 +188,21 @@ fit <- lm(mean ~ baseline + Group, data = rats_sm2)
 anova(fit)
 ```
 
-(Results - Independent Samples t-test for Mean Summary Measure for data with missing values, table 8.6, - omitted as it uses data not seen here)
+Lastly, I'm omitting the Table 8.6. It doesn't use the BPRS data in the original,
+so strictly speaking cannot swap that data to RATS dataset. It also demonstrates
+how to deal with missing data, so performing the analysis with a full dataset
+is not the most productive way (of course I could randomly remove some of the 
+data and work that way, but I'm being lazy here).
 
 ## Working with BPRS data
-Week vs BPRS with group numbers (Fig. 9.1)
+
+**Week vs BPRS with group numbers (Fig. 9.1)**
 ```{r}
 ggplot(bprs, aes(x=week, y=bprs, color=treatment)) +
-  #geom_point(aes(shape=treatment, color=treatment)) +
   geom_text(aes(label=treatment), show.legend=FALSE)
 ```
 
-Results from fitting linear reg.model ignoring the repeated-measures structure of the data (Table 9.3)
+**Results from fitting linear reg.model ignoring the repeated-measures structure of the data (Table 9.3)**
 ```{r}
 # create a regression model RATS_reg
 bprs_reg <- lm(bprs ~ week + treatment, data = bprs)
@@ -177,88 +210,107 @@ bprs_reg <- lm(bprs ~ week + treatment, data = bprs)
 summary(bprs_reg)
 ```
 
-Individual BTRS profiles (Fig. 9.2)
+**Individual BTRS profiles (Fig. 9.2)**
+Here's where the custom `ID` column comes in handy. I need to be able to differentiate
+between the subjects with the same `subject` value but different `treatment` value.
+Otherwise this plot would become confused, poor thing.
 ```{r}
-# Check the dimensions of the data
-dim(bprs)
-
-#bprs$key <- str.concatenate(as.character(bprs$treatment))
-#str(bprs)
+# Check that the ID column is included
+str(bprs)
 
 # Plot the RATSL data
-ggplot(bprs, aes(x = week, y = bprs)) +
+ggplot(bprs, aes(x = week, y = bprs, group=ID)) +
   geom_line(aes(linetype=treatment)) +
-  scale_x_continuous(name = "Weight (grams)") +
+  scale_y_continuous(name = "Weight (grams)") +
   theme(legend.position = "top")
 ```
 
-Scatterplot matrix of repeated measures (Fig. 9.3)
+**Scatterplot matrix of repeated measures (Fig. 9.3)**
 ```{r}
+
 ```
 
-Results from fitting random intercept model (Table 9.4)
-```{r eval=F}
+**Results from fitting random intercept model (Table 9.4)**
+```{r}
 # Create a random intercept model
-RATS_ref <- lmer(Weight ~ Time + Group + (1 | ID), data = RATSL, REML = FALSE)
+bprs_ref <- lmer(bprs ~ week + treatment + (1 | subject), data = bprs, REML = FALSE)
 
 # Print the summary of the model
-summary(RATS_ref)
+summary(bprs_ref)
 
 ```
 
-Results from fitting random intercept and slope model (Table 9.5)
-```{r eval=F}
+**Results from fitting random intercept and slope model (Table 9.5)**
+```{r}
 # dplyr, tidyr, lme4, ggplot2, RATS and RATSL are available
 
 # create a random intercept and random slope model
-RATS_ref1 <- lmer(Weight ~ Time + Group + (Time | ID), data = RATSL, REML = FALSE)
+bprs_ref1 <- lmer(bprs ~ week + treatment + (week | subject), data = bprs, REML = FALSE)
 
 # print a summary of the model
-summary(RATS_ref1)
+summary(bprs_ref1)
 
 # perform an ANOVA test on the two models
-anova(RATS_ref1, RATS_ref)
+anova(bprs_ref1, bprs_ref)
 
 ```
 
-Results from Fitting the Random Intercept and Slope Model that Allows for a Group×Time Interaction to Rat Growth Data (Table 9.6)
-```{r eval=F}
+Do it again with using `ID` instead of `subject`
+```{r}
+# Create a random intercept model
+bprs_ref_id <- lmer(bprs ~ week + treatment + (1 | ID), data = bprs, REML = FALSE)
+
+# Print the summary of the model
+summary(bprs_ref)
+
+# create a random intercept and random slope model
+bprs_ref_id1 <- lmer(bprs ~ week + treatment + (week | ID), data = bprs, REML = FALSE)
+
+# print a summary of the model
+summary(bprs_ref_id1)
+
+# perform an ANOVA test on the two models
+anova(bprs_ref_id1, bprs_ref_id)
+```
+
+**Results from Fitting the Random Intercept and Slope Model that Allows for a Group×Time Interaction to Rat Growth Data (Table 9.6)**
+```{r}
 # dplyr, tidyr, lme4, ggplot2, RATS and RATSL are available
 
 # create a random intercept and random slope model with the interaction
-RATS_ref2 <- lmer(Weight ~ Time + Group + Time * Group + (Time | ID), data = RATSL, REML = FALSE)
+bprs_ref2 <- lmer(bprs ~ week * treatment + (week | ID), data = bprs, REML = FALSE)
 
 # print a summary of the model
-summary(RATS_ref2)
+summary(bprs_ref2)
 
 # perform an ANOVA test on the two models
-anova(RATS_ref2, RATS_ref1)
+anova(bprs_ref2, bprs_ref1)
 
-# draw the plot of RATSL with the observed Weight values
-ggplot(RATSL, aes(x = Time, y = Weight, group = ID)) +
-  geom_line(aes(linetype = Group)) +
-  scale_x_continuous(name = "Time (days)", breaks = seq(0, 60, 20)) +
-  scale_y_continuous(name = "Observed weight (grams)") +
-  theme(legend.position = "top")
-
-# Create a vector of the fitted values
-Fitted <- fitted(RATS_ref2, RATSL)
-
-# Create a new column fitted to RATSL
-RATSL$Fitted <- Fitted
-
-# draw the plot of RATSL with the Fitted values of weight
-ggplot(RATSL, aes(x = Time, y = Fitted, group = ID)) +
-  geom_line(aes(linetype = Group)) +
-  scale_x_continuous(name = "Time (days)", breaks = seq(0, 60, 20)) +
-  scale_y_continuous(name = "Fitted weight (grams)") +
-  theme(legend.position = "top")
 
 ```
 
-Fitted and observed growth profiles (Figure 9.4)
-```{r eval=F}
+**Fitted and observed growth profiles (Figure 9.4)**
+```{r}
+# draw the plot of RATSL with the observed Weight values
+ggplot(bprs, aes(x = week, y = bprs, group = ID)) +
+  geom_line(aes(linetype = treatment)) +
+  #scale_x_continuous(name = "Time (days)", breaks = seq(0, 60, 20)) +
+  #scale_y_continuous(name = "Observed weight (grams)") +
+  theme(legend.position = "top")
 
+# Create a vector of the fitted values
+Fitted <- fitted(bprs_ref2, bprs)
+
+# Create a new column fitted to RATSL
+bprs2 <- bprs
+bprs2$Fitted <- Fitted
+
+# draw the plot of RATSL with the Fitted values of weight
+ggplot(bprs2, aes(x = week, y = Fitted, group = ID)) +
+  geom_line(aes(linetype = treatment)) +
+  #scale_x_continuous(name = "Time (days)", breaks = seq(0, 60, 20)) +
+  #scale_y_continuous(name = "Fitted weight (grams)") +
+  theme(legend.position = "top")
 ```
 
 
