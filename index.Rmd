@@ -60,3 +60,34 @@ output:
 ```
 
 <a href="#top" class="return-link">Back to top.</a>
+
+***
+
+# Final word
+
+So, this was it! That was the last chapter of this course and with it this course
+diary comes to an end. In a proper [book-ends](https://tvtropes.org/pmwiki/pmwiki.php/Main/Bookends)-style,
+I'm going to write a bit about my thoughts about the course.
+
+First of all, I had fun! While the course had a lot of work and strict deadlines,
+I still enjoyed writing this diary. Partially because I decided to write in my
+own style -- with the casual remarks and all. I wanted to make the writing fun for me
+and reading enjoyable to the readers. Based on the peer reviews I got along the way,
+I'd say that I was successful!
+
+Second, the R language was a new experience for me. The tasks weren't too difficult
+especially when the Datacamp exercises pretty much solve nearly everything on the
+coding side. The hardest part was overcoming my initial way of solving things --
+R is not Python, and things work differently here! Once I realised this the coding
+became smoother.
+
+Third, I learned a lot about data analysis! I hope I can use this new knowledge
+as a basis when I start delving deeper into my research (which will inevitably require
+a better understanding of statistics).
+
+Finally, thanks for Kimmo Vehkalahti, Reijo Sund, and the teaching assistants for
+organising the course and you, dear reader, for reading my ramblings.
+
+Petteri signing out.
+
+<a href="#top" class="return-link">Back to top.</a>
