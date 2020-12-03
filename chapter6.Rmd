@@ -61,7 +61,7 @@ though I don't recall it being in the instructions.
 
 ## Working with RATS data
 
-**Plot of the rats' weights (Fig. 8.1).** 
+### Plot of the rats' weights (Fig. 8.1).
 So here is a graphical overview of the time series of rats' weight development. 
 Group 1 seems to consist of smaller rats than the other two groups. 
 Also there is one huge rat in group 2, which will skew the mean value for that group.
@@ -75,7 +75,7 @@ ggplot(rats, aes(x = time, y = weight, linetype= ID)) +
 
 ```
 
-**Standardized weights (Fig 8.2)**
+### Standardized weights (Fig 8.2)
 Next up is "tracking", i.e. plotting the time series of standardized weights. That'll
 show how a rat gains weight compared to the others. This feels like anomaly detection
 in atmospheric dynamics, or de-trending. Though those things are a bit different
@@ -97,7 +97,7 @@ ggplot(rats_tracked, aes(x = time, y = std.weight, linetype= ID)) +
 
 ```
 
-**Mean response profiles (Fig. 8.3)**
+### Mean response profiles (Fig. 8.3)
 ```{r}
 ratss <- rats %>%
   group_by(Group, time) %>%
@@ -118,13 +118,13 @@ ggplot(ratss, aes(x = time, y = mean, linetype = Group, shape="1", color=Group))
   scale_y_continuous(name = "mean(weight) +/- se(weight)")
 ```
 
-**Boxplots for rats data (Fig. 8.4)**
+### Boxplots for rats data (Fig. 8.4)
 ```{r}
 ggplot(rats, aes(x=as.factor(time), y=weight, color=Group)) +
   geom_boxplot()
 ```
 
-**Boxplots of mean summary measures for the three rat groups (Fig. 8.5)**
+### Boxplots of mean summary measures for the three rat groups (Fig. 8.5)
 ```{r}
 # Create a summary data by treatment and subject with mean as the summary variable (ignoring baseline day 1).
 rats_sm <- rats %>%
@@ -143,7 +143,7 @@ ggplot(rats_sm, aes(x = Group, y = mean)) +
   scale_y_continuous(name = "mean(weight), time > 1")
 ```
 
-**Same as above but with outliers (if any) removed (Fig. 8.6)**
+### Same as above but with outliers (if any) removed (Fig. 8.6)
 Okay so, group 2 has an outlier. Remove it. Though I'm removing 1 rat from a total 4 rats,
 meaning that the statistics start to be *quite* dubious... `n=3` doesn't sound like
 a large enough of a sample.
@@ -158,8 +158,8 @@ ggplot(rats_sm1, aes(x = Group, y = mean)) +
   scale_y_continuous(name = "mean(weight), time > 1")
 ```
 
-**t-test for Mean Summary Measure (table 8.3)**
-That test is a paired test, so there can be only two variables. Luckily three 
+### *t*-test for Mean Summary Measure (table 8.3)
+*t*-test is a paired test, so there can be only two variables. Luckily three 
 groups equate to three pairs, so I can do the t-test for each pair with minimal effort (copypaste).
 ```{r}
 rats_sm1_noG3 <- rats_sm1 %>% filter(Group != 3)
@@ -172,7 +172,7 @@ rats_sm1_noG1 <- rats_sm1 %>% filter(Group != 1)
 t.test(mean ~ Group, data = rats_sm1_noG1, var.equal = TRUE)
 ```
 
-**Analysis of Covariance (ANOVA) (table 8.4)**
+### Analysis of Covariance (ANOVA) (table 8.4)
 For the ANOVA I need a baseline for each row -- and that is easy to pick up from
 the original data. This works because the `rats_sm` contains only one row for each
 rat -- it is a summary of all measurements -- and the original data has one row
@@ -196,13 +196,20 @@ data and work that way, but I'm being lazy here).
 
 ## Working with BPRS data
 
-**Week vs BPRS with group numbers (Fig. 9.1)**
+Moving on to the BPRS data and Chapter 9 examples. I might take some liberties
+here and there in visualising the data instead of 100% faithfully replicating
+the figures. Mainly because the data is different so I might need to adjust 
+the visuals a bit to increase readability.
+
+### Week vs BPRS with group numbers (Fig. 9.1)
+Here the two groups overlap more than the rats, and we have more individuals here as well!
+
 ```{r}
 ggplot(bprs, aes(x=week, y=bprs, color=treatment)) +
   geom_text(aes(label=treatment), show.legend=FALSE)
 ```
 
-**Results from fitting linear reg.model ignoring the repeated-measures structure of the data (Table 9.3)**
+### Results from fitting linear reg.model ignoring the repeated-measures structure of the data (Table 9.3)
 ```{r}
 # create a regression model RATS_reg
 bprs_reg <- lm(bprs ~ week + treatment, data = bprs)
@@ -210,7 +217,29 @@ bprs_reg <- lm(bprs ~ week + treatment, data = bprs)
 summary(bprs_reg)
 ```
 
-**Individual BTRS profiles (Fig. 9.2)**
+I'm going to cheat a bit here and plot an extra figure or two. Because I want to
+see how this faulty analysis looks like!
+
+```{r}
+fit <- fitted(bprs_reg, bprs)
+
+ggplot(bprs, aes(x=week, y=bprs)) +
+  geom_line(aes(group=subject), color="gray75") +
+  geom_point() +
+  geom_smooth(method="lm") +
+  labs(title="BPRS by week (with regression) for both treatment groups") +
+  facet_wrap(vars(treatment))
+
+```
+
+Since the `treatment` is a categorical value, I can plot the linear regression
+this way. It helps that there are two categories in `treatment`, though. I included
+the the time series as lines, too, to highlight why this sort of regression modeling
+doesn't work here. Okay, sure, it shows the downward trend in both groups, but 
+for analysing trends you'd want to consider the "repeated measures" nature of the
+data anyways[^4].
+
+### Individual BTRS profiles (Fig. 9.2)
 Here's where the custom `ID` column comes in handy. I need to be able to differentiate
 between the subjects with the same `subject` value but different `treatment` value.
 Otherwise this plot would become confused, poor thing.
@@ -225,12 +254,18 @@ ggplot(bprs, aes(x = week, y = bprs, group=ID)) +
   theme(legend.position = "top")
 ```
 
-**Scatterplot matrix of repeated measures (Fig. 9.3)**
+### Scatterplot matrix of repeated measures (Fig. 9.3)
+This thing requires the original data. Maybe I could pivot the data... Yep, that works.
 ```{r}
+bprs_w <- tidyr::pivot_wider(bprs, names_from=weeks, values_from=bprs, 
+                             id_cols=c("treatment", "subject", "ID")) %>% 
+  as.data.frame
+str(bprs_w)
 
+plot(bprs_w[-1:-3])
 ```
 
-**Results from fitting random intercept model (Table 9.4)**
+### Results from fitting random intercept model (Table 9.4)
 ```{r}
 # Create a random intercept model
 bprs_ref <- lmer(bprs ~ week + treatment + (1 | subject), data = bprs, REML = FALSE)
@@ -240,10 +275,8 @@ summary(bprs_ref)
 
 ```
 
-**Results from fitting random intercept and slope model (Table 9.5)**
+### Results from fitting random intercept and slope model (Table 9.5)
 ```{r}
-# dplyr, tidyr, lme4, ggplot2, RATS and RATSL are available
-
 # create a random intercept and random slope model
 bprs_ref1 <- lmer(bprs ~ week + treatment + (week | subject), data = bprs, REML = FALSE)
 
@@ -255,7 +288,8 @@ anova(bprs_ref1, bprs_ref)
 
 ```
 
-Do it again with using `ID` instead of `subject`
+So, as there are duplicate values in `subject` column, I'm not so sure if that
+fitting did what we wanted to do here. Let's do this again using `ID` instead of `subject`.
 ```{r}
 # Create a random intercept model
 bprs_ref_id <- lmer(bprs ~ week + treatment + (1 | ID), data = bprs, REML = FALSE)
@@ -273,10 +307,8 @@ summary(bprs_ref_id1)
 anova(bprs_ref_id1, bprs_ref_id)
 ```
 
-**Results from Fitting the Random Intercept and Slope Model that Allows for a Group×Time Interaction to Rat Growth Data (Table 9.6)**
+### Results from Fitting the Random Intercept and Slope Model that Allows for a Group×Time Interaction to Rat Growth Data (Table 9.6)
 ```{r}
-# dplyr, tidyr, lme4, ggplot2, RATS and RATSL are available
-
 # create a random intercept and random slope model with the interaction
 bprs_ref2 <- lmer(bprs ~ week * treatment + (week | ID), data = bprs, REML = FALSE)
 
@@ -289,7 +321,7 @@ anova(bprs_ref2, bprs_ref1)
 
 ```
 
-**Fitted and observed growth profiles (Figure 9.4)**
+### Fitted and observed growth profiles (Figure 9.4)
 ```{r}
 # draw the plot of RATSL with the observed Weight values
 ggplot(bprs, aes(x = week, y = bprs, group = ID)) +
@@ -314,4 +346,7 @@ ggplot(bprs2, aes(x = week, y = Fitted, group = ID)) +
 ```
 
 
-
+[^4]: I'm having trouble imagining what sort of measures would be time series
+measures *and simultaneously not repeated* measures, as "time series" already
+implies repetition. Perhaps sequences of truly random noise, such as atmospheric noise,
+could be considered as such measure?
